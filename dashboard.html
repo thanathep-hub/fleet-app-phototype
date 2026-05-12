@@ -1,13 +1,10 @@
 <!DOCTYPE html>
-
 <html lang="th">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
-<meta content="#211e53" name="theme-color"/>
-<title>Fleet Manager — Dashboard</title>
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@500;700&amp;family=Noto+Sans+Thai:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IAD SmartCare — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,800;9..144,900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <script>
@@ -16,13 +13,14 @@ tailwind.config = {
     extend: {
       colors: {
         brand: {
-          50: '#f4f3f9', 100: '#ebeaf3', 200: '#d2cfe5', 300: '#aaa4cd',
-          400: '#7d75b0', 500: '#5d5494', 600: '#48417a', 700: '#3b3563',
-          800: '#332e54', 900: '#211e53', 950: '#15123a',
+          50: '#f0fdfa', 100: '#ccfbf1', 200: '#99f6e4', 300: '#5eead4',
+          400: '#2dd4bf', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e',
+          800: '#115e59', 900: '#134e4a', 950: '#042f2e',
         }
       },
       fontFamily: {
-        sans: ['Inter', 'Noto Sans Thai', 'system-ui', 'sans-serif'],
+        sans: ['Manrope', 'IBM Plex Sans Thai', 'system-ui', 'sans-serif'],
+        display: ['Fraunces', 'Georgia', 'serif'],
         mono: ['JetBrains Mono', 'monospace'],
       }
     }
@@ -30,876 +28,869 @@ tailwind.config = {
 }
 </script>
 <style>
-body { font-family: 'Inter', 'Noto Sans Thai', sans-serif; }
+body {
+  font-family: 'Manrope', 'IBM Plex Sans Thai', sans-serif;
+  font-feature-settings: 'ss01', 'cv11';
+}
+.font-display { font-family: 'Fraunces', Georgia, serif; font-feature-settings: 'ss01'; }
 .font-mono { font-family: 'JetBrains Mono', monospace; }
-.chip-row::-webkit-scrollbar { display: none; }
-.chip-row { -ms-overflow-style: none; scrollbar-width: none; }
-.safe-bottom { padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); }
-@media (min-width: 1024px) {
-  .mobile-only { display: none !important; }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Multi-layer shadows */
+.shadow-card {
+  box-shadow:
+    0 1px 2px rgba(15,23,42,0.04),
+    0 2px 4px rgba(15,23,42,0.03),
+    0 6px 12px rgba(15,23,42,0.03);
 }
-@media (max-width: 1023px) {
-  .desktop-only { display: none !important; }
+.shadow-card-hover {
+  box-shadow:
+    0 1px 2px rgba(15,23,42,0.05),
+    0 4px 8px rgba(15,23,42,0.05),
+    0 16px 32px rgba(15,118,110,0.08);
+}
+.card-lift { transition: transform 0.3s cubic-bezier(0.16,1,0.3,1), box-shadow 0.3s ease; }
+.card-lift:hover { transform: translateY(-4px); }
+
+.card-grad {
+  background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
 }
 
-/* === Sidebar layout === */
-.sidebar {
-  position: fixed;
-  top: 0; left: 0; bottom: 0;
-  width: 240px;
-  z-index: 40;
-  transition: transform 0.25s ease;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+.bg-dots {
+  background-image: radial-gradient(rgba(15,118,110,0.07) 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
+  background-position: -12px -12px;
 }
-.main-area {
-  margin-left: 240px;
-  transition: margin-left 0.25s ease;
-  min-height: 100vh;
-}
-/* When hidden: sidebar slides off-screen, content takes full width */
-body.sidebar-collapsed .sidebar {
-  transform: translateX(-100%);
-}
-body.sidebar-collapsed .main-area {
-  margin-left: 0;
-}
-/* Toggle button morphs: 'panel-left' icon stays the same; we just rotate it visually */
-body.sidebar-collapsed .toggle-icon {
-  transform: rotate(180deg);
-}
-.toggle-icon {
-  transition: transform 0.25s ease;
-  display: inline-block;
+.bg-mesh {
+  background-color: #f8fafc;
+  background-image:
+    radial-gradient(at 5% 0%, rgba(20,184,166,0.10) 0px, transparent 45%),
+    radial-gradient(at 95% 100%, rgba(13,148,136,0.06) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(249,115,22,0.03) 0px, transparent 50%);
 }
 
-/* ====================================================== */
-/* === NATIVE-FEEL ENHANCEMENTS                          === */
-/* ====================================================== */
+.severity-1a { background: #ecfdf5; color: #047857; }
+.severity-1b { background: #fef3c7; color: #b45309; }
+.severity-2a { background: #ffedd5; color: #c2410c; }
+.severity-2b { background: #fee2e2; color: #b91c1c; }
 
-/* Tap feedback: native button press feel (scale + brightness) */
-.tap {
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-  cursor: pointer;
-  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1),
-              filter 0.15s ease;
-  will-change: transform;
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.55); }
+  70% { box-shadow: 0 0 0 10px rgba(239,68,68,0); }
+  100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
 }
-.tap:active {
-  transform: scale(0.97);
-  filter: brightness(0.96);
-}
-/* Cards have less aggressive scale */
-.tap-card:active {
-  transform: scale(0.98);
-}
+.pulse-critical { animation: pulse-ring 2.4s infinite; }
 
-/* Ripple effect (Material) */
-.ripple {
-  position: relative;
-  overflow: hidden;
-}
-.ripple-wave {
-  position: absolute;
-  border-radius: 50%;
-  pointer-events: none;
-  background: rgba(255, 255, 255, 0.4);
-  transform: scale(0);
-  animation: ripple-anim 0.6s ease-out;
-}
-.ripple-dark .ripple-wave {
-  background: rgba(33, 30, 83, 0.15);
-}
-@keyframes ripple-anim {
-  to {
-    transform: scale(4);
-    opacity: 0;
-  }
-}
+@keyframes ping-dot { 75%, 100% { transform: scale(2); opacity: 0; } }
+.ping-dot { animation: ping-dot 1.8s cubic-bezier(0,0,0.2,1) infinite; }
 
-/* Skeleton shimmer */
-.skel {
-  background: linear-gradient(90deg, #e2e8f0 0%, #f1f5f9 50%, #e2e8f0 100%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
-  border-radius: 8px;
-}
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-/* Reveal animation when skeleton finishes */
-.fade-in {
-  animation: fadeUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(8px); }
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
+.fade-up { animation: fade-up 0.7s cubic-bezier(0.16,1,0.3,1) backwards; }
 
-/* Stagger children when revealing */
-.stagger > * {
-  opacity: 0;
-  animation: fadeUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-.stagger > *:nth-child(1) { animation-delay: 0.05s; }
-.stagger > *:nth-child(2) { animation-delay: 0.1s; }
-.stagger > *:nth-child(3) { animation-delay: 0.15s; }
-.stagger > *:nth-child(4) { animation-delay: 0.2s; }
-.stagger > *:nth-child(5) { animation-delay: 0.25s; }
-.stagger > *:nth-child(6) { animation-delay: 0.3s; }
+.bar-anim { transform-origin: bottom; transform: scaleY(0); animation: bar-grow 0.9s cubic-bezier(0.16,1,0.3,1) forwards; }
+@keyframes bar-grow { to { transform: scaleY(1); } }
 
-/* iOS-style bottom nav blur (sticky to bottom) */
-.ios-blur {
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  background-color: rgba(255, 255, 255, 0.85);
-}
+.path-draw { stroke-dasharray: 1000; stroke-dashoffset: 1000; animation: path-draw 1.8s ease-out forwards; }
+@keyframes path-draw { to { stroke-dashoffset: 0; } }
 
-/* Bottom-nav active item: lift + dot indicator */
-.nav-item-active {
-  position: relative;
-}
-.nav-item-active::before {
-  content: '';
-  position: absolute;
-  top: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #211e53;
-}
+.donut-seg { transform-origin: center; transform: scale(0.85); opacity: 0; animation: donut-in 0.8s cubic-bezier(0.16,1,0.3,1) forwards; }
+@keyframes donut-in { to { transform: scale(1); opacity: 1; } }
 
-/* Subtle pulse for critical alerts */
-@keyframes soft-pulse {
-  0%, 100% { box-shadow: 0 10px 20px -5px rgba(220, 38, 38, 0.4); }
-  50% { box-shadow: 0 14px 28px -4px rgba(220, 38, 38, 0.55); }
-}
-.pulse-red {
-  animation: soft-pulse 2.5s ease-in-out infinite;
-}
-/* When stagger child also has pulse-red, combine both animations
-   so opacity reveal still works */
-.stagger > .pulse-red {
-  animation: fadeUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards,
-             soft-pulse 2.5s ease-in-out infinite;
-}
-.stagger > *:nth-child(4).pulse-red {
-  animation-delay: 0.2s, 0.7s;
-}
+.modal-backdrop { background: rgba(15,23,42,0.55); backdrop-filter: blur(8px); }
+@keyframes modal-in { from { opacity: 0; transform: scale(0.96) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+.modal-content { animation: modal-in 0.25s cubic-bezier(0.16,1,0.3,1); }
 
-/* Smooth scrolling */
-html { scroll-behavior: smooth; }
+#sidebar { transition: margin-left 0.3s cubic-bezier(0.16,1,0.3,1), opacity 0.2s; }
+#sidebar.collapsed { margin-left: -16rem; opacity: 0.4; pointer-events: none; }
+#sidebar-toggle-btn { transition: all 0.2s ease; }
+#sidebar-toggle-btn:hover { transform: scale(1.06); }
 
-/* Hide scrollbar in chip rows (already exists, ensuring) */
-::-webkit-scrollbar { width: 0; height: 0; }
+.tabular-nums { font-variant-numeric: tabular-nums; }
 
-/* Pull indicator (visual hint, non-functional) */
-.pull-hint {
-  text-align: center;
-  font-size: 10px;
-  color: #94a3b8;
-  padding-top: 8px;
-  font-weight: 600;
+.noise::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  opacity: 0.04; mix-blend-mode: overlay;
 }
-
-
-/* === SIDE DRAWER (mobile) === */
-#sideDrawer { visibility: hidden; pointer-events: none; }
-#sideDrawer.show { visibility: visible; pointer-events: auto; }
-#sideDrawer .drawer-backdrop { opacity: 0; transition: opacity 0.3s ease; }
-#sideDrawer.show .drawer-backdrop { opacity: 1; }
-#sideDrawer .drawer-panel {
-  transform: translateX(-100%);
-  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
-}
-#sideDrawer.show .drawer-panel { transform: translateX(0); }
-body.modal-open { overflow: hidden; }
-.ios-modal-shadow {
-  box-shadow: 0 4px 16px rgba(0,0,0,0.08), 0 24px 64px -16px rgba(0,0,0,0.20);
-}
-.ios-shadow-2 {
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 4px 12px -2px rgba(0,0,0,0.08);
-}
-
 </style>
 </head>
-<body class="bg-slate-50 lg:bg-slate-50">
-<!-- MOBILE VIEW (< 1024px) -->
-<div class="mobile-only min-h-screen relative bg-slate-50" id="mobile-content">
-<div class="bg-white px-5 pt-3 pb-4 border-b border-slate-100">
-<div class="flex items-center justify-between">
-<div>
-<p class="text-xs text-slate-500">สวัสดี, สมชาย</p>
-<h1 class="text-lg font-bold text-slate-900">ภาพรวมวันนี้</h1>
-</div>
-<div class="flex gap-2">
-<button class="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center relative tap ripple ripple-dark">
-<i class="w-5 h-5 text-slate-700" data-lucide="bell"></i>
-<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
-</button>
-<div class="w-10 h-10 bg-brand-900 rounded-full flex items-center justify-center text-white text-xs font-bold">SC</div>
-</div>
-</div>
-</div>
-<div class="px-5 py-5 grid grid-cols-2 gap-3 stagger">
-<!-- รถทั้งหมด - white bg, brand icon -->
-<div class="bg-white rounded-2xl p-4 border border-slate-200 tap-card tap ripple ripple-dark">
-<div class="flex items-center justify-between mb-3">
-<div class="w-10 h-10 bg-brand-900 rounded-lg flex items-center justify-center">
-<i class="w-5 h-5 text-white" data-lucide="truck"></i>
-</div>
-<span class="text-[10px] font-bold text-brand-900 uppercase tracking-wider">ทั้งหมด</span>
-</div>
-<div class="text-3xl font-extrabold text-slate-900">50</div>
-<div class="text-xs text-slate-500 mt-0.5">รถในบริษัท</div>
-</div>
-<!-- ใช้งาน - white bg, emerald icon -->
-<div class="bg-white rounded-2xl p-4 border border-slate-200 tap-card tap ripple ripple-dark">
-<div class="flex items-center justify-between mb-3">
-<div class="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
-<i class="w-5 h-5 text-white" data-lucide="check"></i>
-</div>
-<span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">+2</span>
-</div>
-<div class="text-3xl font-extrabold text-slate-900">42</div>
-<div class="text-xs text-slate-500 mt-0.5">ใช้งาน · 84%</div>
-</div>
-<!-- ซ่อม - warning solid -->
-<div class="bg-amber-500 rounded-2xl p-4 relative overflow-hidden shadow-lg shadow-amber-500/30 tap-card tap ripple ripple-dark">
-<div class="absolute -right-4 -bottom-4 w-20 h-20 rounded-full bg-white/10"></div>
-<div class="flex items-center justify-between mb-3 relative">
-<div class="w-10 h-10 bg-white/20 backdrop-blur rounded-lg flex items-center justify-center">
-<i class="w-5 h-5 text-white" data-lucide="wrench"></i>
-</div>
-<span class="text-[10px] font-bold text-white uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full">ซ่อม</span>
-</div>
-<div class="text-3xl font-extrabold text-white relative">5</div>
-<div class="text-xs text-amber-50 mt-0.5 font-semibold relative">รออะไหล่ 2 คัน</div>
-</div>
-<!-- alert - red solid + ping -->
-<div class="bg-red-600 rounded-2xl p-4 relative overflow-hidden shadow-lg shadow-red-500/30 tap-card tap ripple ripple-dark pulse-red">
-<div class="absolute -right-4 -bottom-4 w-20 h-20 rounded-full bg-white/10"></div>
-<div class="absolute top-2 right-2">
-<span class="flex h-2 w-2">
-<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-<span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-</span>
-</div>
-<div class="flex items-center justify-between mb-3 relative">
-<div class="w-10 h-10 bg-white/20 backdrop-blur rounded-lg flex items-center justify-center">
-<i class="w-5 h-5 text-white" data-lucide="alert-triangle"></i>
-</div>
-<span class="text-[10px] font-bold text-white uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full">ด่วน!</span>
-</div>
-<div class="text-3xl font-extrabold text-white relative">3</div>
-<div class="text-xs text-red-50 mt-0.5 font-semibold relative">เอกสารใกล้หมด</div>
-</div>
-</div>
-<div class="px-5 mb-4">
-<div class="bg-red-50 border border-red-200 rounded-2xl p-4">
-<div class="flex items-center gap-2 mb-3">
-<i class="w-4 h-4 text-red-600" data-lucide="alert-triangle"></i>
-<h3 class="text-sm font-bold text-red-900">ต้องดำเนินการด่วน</h3>
-</div>
-<div class="space-y-2">
-<div class="flex items-center justify-between bg-white rounded-lg p-2.5 tap ripple ripple-dark">
-<div>
-<div class="font-mono text-sm font-bold text-slate-900">1กข-1234</div>
-<div class="text-[11px] text-slate-500">พ.ร.บ. หมดใน 7 วัน</div>
-</div>
-<i class="w-4 h-4 text-slate-400" data-lucide="chevron-right"></i>
-</div>
-<div class="flex items-center justify-between bg-white rounded-lg p-2.5 tap ripple ripple-dark">
-<div>
-<div class="font-mono text-sm font-bold text-slate-900">2ขค-5678</div>
-<div class="text-[11px] text-slate-500">ภาษีหมดใน 15 วัน</div>
-</div>
-<i class="w-4 h-4 text-slate-400" data-lucide="chevron-right"></i>
-</div>
-</div>
-</div>
-</div>
-<div class="px-5 mb-4">
-<div class="bg-brand-900 rounded-2xl p-5 text-white relative overflow-hidden">
-<div class="absolute -right-8 -bottom-8 w-32 h-32 rounded-full bg-white/5"></div>
-<p class="text-xs text-white/60 uppercase tracking-wider font-semibold">ค่าใช้จ่ายเดือนนี้</p>
-<div class="flex items-baseline gap-1 mt-2">
-<span class="text-3xl font-extrabold">฿284,500</span>
-</div>
-<div class="flex items-center gap-1 text-xs text-emerald-300 mt-1">
-<i class="w-3.5 h-3.5" data-lucide="trending-down"></i>
-<span>ลดลง 12% จากเดือนก่อน</span>
-</div>
-<!-- Mini bar chart -->
-<div class="flex items-end gap-1 mt-4 h-12">
-<div class="flex-1 bg-white/20 rounded-t" style="height:40%"></div>
-<div class="flex-1 bg-white/20 rounded-t" style="height:55%"></div>
-<div class="flex-1 bg-white/20 rounded-t" style="height:35%"></div>
-<div class="flex-1 bg-white/20 rounded-t" style="height:65%"></div>
-<div class="flex-1 bg-white/20 rounded-t" style="height:50%"></div>
-<div class="flex-1 bg-white/40 rounded-t" style="height:75%"></div>
-<div class="flex-1 bg-white rounded-t" style="height:60%"></div>
-</div>
-</div>
-</div>
-<div class="px-5 pb-24">
-<div class="flex items-center justify-between mb-3">
-<h3 class="text-sm font-bold text-slate-900">กิจกรรมล่าสุด</h3>
-<a class="text-xs font-semibold text-brand-900" href="expense.html">ดูทั้งหมด</a>
-</div>
-<div class="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-100">
-<div class="p-3 flex items-center gap-3 tap ripple ripple-dark">
-<div class="w-9 h-9 bg-emerald-100 rounded-full flex items-center justify-center"><i class="w-4 h-4 text-emerald-700" data-lucide="fuel"></i></div>
-<div class="flex-1 min-w-0">
-<p class="text-sm font-semibold text-slate-900 truncate">เติมน้ำมัน · 1กข-1234</p>
-<p class="text-[11px] text-slate-500">วันนี้ 08:30 · สมชาย</p>
-</div>
-<span class="text-sm font-bold text-slate-900 font-mono">฿1,200</span>
-</div>
-<div class="p-3 flex items-center gap-3 tap ripple ripple-dark">
-<div class="w-9 h-9 bg-amber-100 rounded-full flex items-center justify-center"><i class="w-4 h-4 text-amber-700" data-lucide="wrench"></i></div>
-<div class="flex-1 min-w-0">
-<p class="text-sm font-semibold text-slate-900 truncate">เปลี่ยนน้ำมันเครื่อง · 3คง-9012</p>
-<p class="text-[11px] text-slate-500">เมื่อวาน 14:20 · ประสิทธิ์</p>
-</div>
-<span class="text-sm font-bold text-slate-900 font-mono">฿2,850</span>
-</div>
-<div class="p-3 flex items-center gap-3 tap ripple ripple-dark">
-<div class="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center"><i class="w-4 h-4 text-blue-700" data-lucide="file-text"></i></div>
-<div class="flex-1 min-w-0">
-<p class="text-sm font-semibold text-slate-900 truncate">ต่อภาษี · 2ขค-5678</p>
-<p class="text-[11px] text-slate-500">2 วันก่อน · วิภา</p>
-</div>
-<span class="text-sm font-bold text-slate-900 font-mono">฿7,500</span>
-</div>
-</div>
-</div>
-<!-- ===== BOTTOM NAV ===== -->
-<div class="fixed bottom-0 left-0 right-0 ios-blur border-t border-slate-200 px-2 pt-2 pb-2 safe-bottom z-30 mobile-only">
-  <div class="grid grid-cols-4">
-    <button class="flex flex-col items-center gap-0.5 py-1.5 text-brand-900 nav-item-active tap ripple ripple-dark">
-      <i class="w-5 h-5" data-lucide="house"></i>
-      <span class="text-[10px] font-bold">หน้าแรก</span>
-    </button>
-    <button class="flex flex-col items-center gap-0.5 py-1.5 text-slate-400 tap ripple ripple-dark" onclick="location.href='vehicles.html'">
-      <i class="w-5 h-5" data-lucide="car"></i>
-      <span class="text-[10px] font-medium">รถ</span>
-    </button>
-    <button class="flex flex-col items-center gap-0.5 py-1.5 text-slate-400 tap ripple ripple-dark" onclick="location.href='expense.html'">
-      <i class="w-5 h-5" data-lucide="receipt"></i>
-      <span class="text-[10px] font-medium">ค่าใช้จ่าย</span>
-    </button>
-    <button class="flex flex-col items-center gap-0.5 py-1.5 text-slate-400 tap ripple ripple-dark" onclick="openDrawer()">
-      <i class="w-5 h-5" data-lucide="more-horizontal"></i>
-      <span class="text-[10px] font-medium">เพิ่มเติม</span>
-    </button>
-  </div>
-</div>
-</div>
-<!-- DESKTOP VIEW (>= 1024px) -->
-<div class="desktop-only min-h-screen bg-slate-50">
-<aside class="bg-white border-r border-slate-200 flex flex-col sidebar">
-<div class="p-5 border-b border-slate-100 cursor-pointer" onclick="location.href='dashboard.html'">
-<div class="flex items-center gap-2.5 sidebar-brand-row">
-<div class="w-9 h-9 bg-brand-900 rounded-lg flex items-center justify-center"><i class="w-5 h-5 text-white" data-lucide="truck"></i></div>
-<div class="sidebar-brand-text">
-<div class="font-bold text-slate-900 text-sm">Fleet Manager</div>
-<div class="text-[10px] text-slate-500">บริษัท ABC จำกัด</div>
-</div>
-</div>
-</div>
-<nav class="flex-1 p-3 space-y-0.5">
-<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-brand-900 text-white text-sm font-semibold" href="dashboard.html">
-<i class="w-4 h-4" data-lucide="layout-dashboard"></i>Dashboard
-              </a>
-<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 text-sm font-medium" href="vehicles.html">
-<i class="w-4 h-4" data-lucide="truck"></i>รถทั้งหมด
-                <span class="ml-auto bg-slate-100 text-slate-600 text-[10px] font-bold px-1.5 py-0.5 rounded sidebar-badge">50</span>
-</a>
-<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 text-sm font-medium" href="expense.html">
-<i class="w-4 h-4" data-lucide="receipt"></i>ค่าใช้จ่าย
-              </a>
-<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 text-sm font-medium">
-<i class="w-4 h-4" data-lucide="file-text"></i>เอกสาร
-              </a>
-<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 text-sm font-medium">
-<i class="w-4 h-4" data-lucide="wrench"></i>ซ่อมบำรุง
-              </a>
-<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 text-sm font-medium">
-<i class="w-4 h-4" data-lucide="bar-chart-3"></i>รายงาน
-              </a>
-<div class="pt-4 mt-4 border-t border-slate-100">
-<div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-1 sidebar-section-title">ผู้ดูแล</div>
-<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 text-sm font-medium">
-<i class="w-4 h-4" data-lucide="users"></i>พนักงาน
-                </a>
-<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 text-sm font-medium" href="permission.html">
-<i class="w-4 h-4" data-lucide="shield"></i>สิทธิ์การเข้าถึง
-                </a>
-</div>
-</nav>
-<div class="p-3 border-t border-slate-100">
-<div class="flex items-center gap-2.5 p-2 rounded-lg hover:bg-slate-50 sidebar-user-row">
-<div class="w-8 h-8 bg-brand-900 rounded-full flex items-center justify-center text-white text-[10px] font-bold">SC</div>
-<div class="flex-1 min-w-0 sidebar-user-text">
-<div class="text-xs font-semibold text-slate-900 truncate">สมชาย ใจดี</div>
-<div class="text-[10px] text-slate-500">Admin</div>
-</div>
-<i class="w-3.5 h-3.5 text-slate-400" data-lucide="log-out"></i>
-</div>
-</div>
-</aside>
-<div class="main-area" id="desktop-content">
-<header class="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between sticky top-0 z-10">
-<div class="flex items-center gap-3"><button class="w-9 h-9 hover:bg-slate-100 rounded-lg flex items-center justify-center text-slate-600 tap ripple ripple-dark" onclick="toggleSidebar()" title="ซ่อน/แสดงเมนู"><span class="toggle-icon"><i class="w-4 h-4" data-lucide="panel-left"></i></span></button><div>
-<h1 class="text-xl font-bold text-slate-900">Dashboard</h1>
-<p class="text-xs text-slate-500">วันจันทร์ที่ 4 พฤษภาคม 2569</p>
-</div></div>
-<div class="flex items-center gap-3">
-<div class="relative">
-<i class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" data-lucide="search"></i>
-<input class="w-72 bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-sm" placeholder="ค้นหารถ, ทะเบียน, พนักงาน..."/>
-</div>
-<button class="relative p-2 hover:bg-slate-100 rounded-lg tap ripple ripple-dark">
-<i class="w-5 h-5 text-slate-600" data-lucide="bell"></i>
-<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
-</button>
-</div>
-</header>
-<div class="p-8">
-<!-- KPI Row -->
-<div class="grid grid-cols-4 gap-4 mb-6 stagger">
-<!-- รถทั้งหมด - white bg, brand icon -->
-<div class="bg-white rounded-xl border border-slate-200 p-5 tap-card tap ripple ripple-dark">
-<div class="flex items-center justify-between mb-3">
-<div class="w-10 h-10 bg-brand-900 rounded-lg flex items-center justify-center">
-<i class="w-5 h-5 text-white" data-lucide="truck"></i>
-</div>
-<span class="text-[10px] font-bold text-brand-900 uppercase tracking-wider">ทั้งหมด</span>
-</div>
-<div class="text-3xl font-extrabold text-slate-900">50</div>
-<div class="text-xs text-slate-500 mt-1">รถในบริษัท</div>
-</div>
-<!-- ใช้งาน - white bg, emerald icon -->
-<div class="bg-white rounded-xl border border-slate-200 p-5 tap-card tap ripple ripple-dark">
-<div class="flex items-center justify-between mb-3">
-<div class="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
-<i class="w-5 h-5 text-white" data-lucide="check"></i>
-</div>
-<span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">+2</span>
-</div>
-<div class="text-3xl font-extrabold text-slate-900">42</div>
-<div class="text-xs text-slate-500 mt-1">ใช้งาน · 84%</div>
-</div>
-<!-- ซ่อม - warning solid -->
-<div class="bg-amber-500 rounded-xl p-5 relative overflow-hidden shadow-lg shadow-amber-500/30 tap-card tap ripple ripple-dark">
-<div class="absolute -right-6 -bottom-6 w-28 h-28 rounded-full bg-white/10"></div>
-<div class="flex items-center justify-between mb-3 relative">
-<div class="w-10 h-10 bg-white/20 backdrop-blur rounded-lg flex items-center justify-center">
-<i class="w-5 h-5 text-white" data-lucide="wrench"></i>
-</div>
-<span class="text-[10px] font-bold text-white uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full">ซ่อม</span>
-</div>
-<div class="text-3xl font-extrabold text-white relative">5</div>
-<div class="text-xs text-amber-50 mt-1 font-semibold relative">รออะไหล่ 2 คัน</div>
-</div>
-<!-- alert - red solid + ping -->
-<div class="bg-red-600 rounded-xl p-5 relative overflow-hidden shadow-lg shadow-red-500/30 tap-card tap ripple ripple-dark pulse-red">
-<div class="absolute -right-6 -bottom-6 w-28 h-28 rounded-full bg-white/10"></div>
-<div class="absolute top-2 right-2">
-<span class="flex h-2.5 w-2.5">
-<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
-</span>
-</div>
-<div class="flex items-center justify-between mb-3 relative">
-<div class="w-10 h-10 bg-white/20 backdrop-blur rounded-lg flex items-center justify-center">
-<i class="w-5 h-5 text-white" data-lucide="alert-triangle"></i>
-</div>
-<span class="text-[10px] font-bold text-white uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full">ด่วน!</span>
-</div>
-<div class="text-3xl font-extrabold text-white relative">3</div>
-<div class="text-xs text-red-50 mt-1 font-semibold relative">เอกสารใกล้หมดอายุ</div>
-</div>
-</div>
-<!-- 2 column -->
-<div class="grid grid-cols-3 gap-4 mb-6">
-<!-- Expense chart -->
-<div class="col-span-2 bg-white rounded-xl border border-slate-200 p-5">
-<div class="flex items-center justify-between mb-1">
-<h3 class="text-sm font-bold text-slate-900">ค่าใช้จ่ายรายเดือน</h3>
-<select class="text-xs border border-slate-200 rounded-md px-2 py-1"><option>7 เดือนล่าสุด</option></select>
-</div>
-<div class="flex items-baseline gap-2 mt-1">
-<span class="text-2xl font-extrabold text-slate-900 font-mono">฿284,500</span>
-<span class="text-xs font-bold text-emerald-600 flex items-center gap-1"><i class="w-3 h-3" data-lucide="trending-down"></i>-12%</span>
-</div>
-<p class="text-xs text-slate-500">เดือนนี้ vs ค่าเฉลี่ย</p>
-<div class="flex items-end gap-3 mt-6 h-32">
-<div class="flex-1 flex flex-col items-center gap-1.5"><div class="w-full bg-brand-200 rounded-t" style="height:55%"></div><span class="text-[10px] text-slate-400 font-mono">พ.ย.</span></div>
-<div class="flex-1 flex flex-col items-center gap-1.5"><div class="w-full bg-brand-200 rounded-t" style="height:70%"></div><span class="text-[10px] text-slate-400 font-mono">ธ.ค.</span></div>
-<div class="flex-1 flex flex-col items-center gap-1.5"><div class="w-full bg-brand-200 rounded-t" style="height:45%"></div><span class="text-[10px] text-slate-400 font-mono">ม.ค.</span></div>
-<div class="flex-1 flex flex-col items-center gap-1.5"><div class="w-full bg-brand-200 rounded-t" style="height:80%"></div><span class="text-[10px] text-slate-400 font-mono">ก.พ.</span></div>
-<div class="flex-1 flex flex-col items-center gap-1.5"><div class="w-full bg-brand-200 rounded-t" style="height:60%"></div><span class="text-[10px] text-slate-400 font-mono">มี.ค.</span></div>
-<div class="flex-1 flex flex-col items-center gap-1.5"><div class="w-full bg-brand-300 rounded-t" style="height:90%"></div><span class="text-[10px] text-slate-400 font-mono">เม.ย.</span></div>
-<div class="flex-1 flex flex-col items-center gap-1.5"><div class="w-full bg-brand-900 rounded-t" style="height:70%"></div><span class="text-[10px] text-slate-900 font-mono font-bold">พ.ค.</span></div>
-</div>
-</div>
-<!-- Alerts -->
-<div class="bg-white rounded-xl border border-slate-200 p-5">
-<div class="flex items-center justify-between mb-4">
-<h3 class="text-sm font-bold text-slate-900">แจ้งเตือนเร่งด่วน</h3>
-<span class="text-[10px] font-bold bg-red-100 text-red-700 px-2 py-0.5 rounded-full">3 รายการ</span>
-</div>
-<div class="space-y-2">
-<div class="flex items-center gap-3 p-2.5 hover:bg-slate-50 rounded-lg">
-<div class="w-2 h-2 bg-red-500 rounded-full flex-shrink-0"></div>
-<div class="flex-1 min-w-0">
-<div class="font-mono text-sm font-bold text-slate-900">1กข-1234</div>
-<div class="text-[11px] text-slate-500">พ.ร.บ. หมดใน 7 วัน</div>
-</div>
-</div>
-<div class="flex items-center gap-3 p-2.5 hover:bg-slate-50 rounded-lg">
-<div class="w-2 h-2 bg-amber-500 rounded-full flex-shrink-0"></div>
-<div class="flex-1 min-w-0">
-<div class="font-mono text-sm font-bold text-slate-900">2ขค-5678</div>
-<div class="text-[11px] text-slate-500">ภาษีหมดใน 15 วัน</div>
-</div>
-</div>
-<div class="flex items-center gap-3 p-2.5 hover:bg-slate-50 rounded-lg">
-<div class="w-2 h-2 bg-amber-500 rounded-full flex-shrink-0"></div>
-<div class="flex-1 min-w-0">
-<div class="font-mono text-sm font-bold text-slate-900">3คง-9012</div>
-<div class="text-[11px] text-slate-500">ครบกำหนดเปลี่ยนน้ำมันเครื่อง</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<!-- Recent activity -->
-<div class="bg-white rounded-xl border border-slate-200">
-<div class="flex items-center justify-between p-5 border-b border-slate-100">
-<h3 class="text-sm font-bold text-slate-900">กิจกรรมล่าสุด</h3>
-<a class="text-xs font-semibold text-brand-900" href="expense.html">ดูทั้งหมด →</a>
-</div>
-<table class="w-full text-sm">
-<thead class="bg-slate-50 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-<tr><th class="px-5 py-2.5">ประเภท</th><th class="px-5 py-2.5">รถ</th><th class="px-5 py-2.5">โดย</th><th class="px-5 py-2.5">เวลา</th><th class="px-5 py-2.5 text-right">จำนวน</th></tr>
-</thead>
-<tbody class="divide-y divide-slate-100">
-<tr><td class="px-5 py-3"><span class="inline-flex items-center gap-1.5 text-emerald-700 font-medium"><i class="w-3.5 h-3.5" data-lucide="fuel"></i>เติมน้ำมัน</span></td><td class="px-5 py-3 font-mono font-bold">1กข-1234</td><td class="px-5 py-3 text-slate-600">สมชาย</td><td class="px-5 py-3 text-slate-500 text-xs">วันนี้ 08:30</td><td class="px-5 py-3 text-right font-mono font-bold">฿1,200</td></tr>
-<tr><td class="px-5 py-3"><span class="inline-flex items-center gap-1.5 text-amber-700 font-medium"><i class="w-3.5 h-3.5" data-lucide="wrench"></i>ซ่อมบำรุง</span></td><td class="px-5 py-3 font-mono font-bold">3คง-9012</td><td class="px-5 py-3 text-slate-600">ประสิทธิ์</td><td class="px-5 py-3 text-slate-500 text-xs">เมื่อวาน 14:20</td><td class="px-5 py-3 text-right font-mono font-bold">฿2,850</td></tr>
-<tr><td class="px-5 py-3"><span class="inline-flex items-center gap-1.5 text-blue-700 font-medium"><i class="w-3.5 h-3.5" data-lucide="file-text"></i>ต่อภาษี</span></td><td class="px-5 py-3 font-mono font-bold">2ขค-5678</td><td class="px-5 py-3 text-slate-600">วิภา</td><td class="px-5 py-3 text-slate-500 text-xs">2 วันก่อน</td><td class="px-5 py-3 text-right font-mono font-bold">฿7,500</td></tr>
-</tbody>
-</table>
-</div>
-</div>
-</div></div>
-<!-- ===== SIDE DRAWER ===== -->
-<div id="sideDrawer" class="fixed inset-0 z-50 mobile-only">
-  <div class="absolute inset-0 bg-black/30 backdrop-blur-sm drawer-backdrop" onclick="closeDrawer()"></div>
-  <div class="drawer-panel absolute top-0 left-0 bottom-0 w-[80%] max-w-[300px] bg-white flex flex-col ios-modal-shadow">
-    <div class="px-5 pt-12 pb-5 border-b border-slate-100">
+<body class="bg-mesh min-h-screen">
+
+<!-- MOBILE -->
+<div class="md:hidden min-h-screen pb-24 bg-dots">
+  <div class="bg-white/80 backdrop-blur-xl px-5 pt-5 pb-4 border-b border-slate-200/60 sticky top-0 z-30">
+    <div class="flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="w-12 h-12 bg-brand-900 rounded-2xl flex items-center justify-center ios-shadow-2">
-          <i class="w-6 h-6 text-white" data-lucide="truck"></i>
+        <div class="relative">
+          <div class="w-11 h-11 bg-gradient-to-br from-brand-700 to-brand-900 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-card">ณธ</div>
+          <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full ring-2 ring-white"></div>
         </div>
         <div>
-          <p class="font-bold text-slate-900 text-base leading-tight">Fleet Manager</p>
-          <p class="text-xs text-slate-500 mt-0.5">บริษัท ABC จำกัด</p>
+          <p class="text-[10px] uppercase tracking-[0.15em] text-slate-500 font-semibold">สวัสดีตอนบ่าย</p>
+          <h1 class="text-base font-bold text-slate-900">ณัฐธิดา</h1>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="openModal('notif-modal')" class="w-10 h-10 bg-white rounded-full flex items-center justify-center relative shadow-card">
+          <i data-lucide="bell" class="w-5 h-5 text-slate-700"></i>
+          <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
+          <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ping-dot"></span>
+        </button>
+        <a href="settings.html" class="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-card">
+          <i data-lucide="settings" class="w-5 h-5 text-slate-700"></i>
+        </a>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 mt-3 text-xs text-slate-500">
+      <i data-lucide="map-pin" class="w-3 h-3"></i>
+      <span class="font-medium">Ward 3A · อายุรกรรม</span>
+      <span class="text-slate-300">·</span>
+      <span class="text-slate-700 font-mono">จ. 11 พ.ค. 69</span>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <div class="px-5 pt-5">
+    <div class="relative overflow-hidden rounded-3xl noise shadow-card fade-up" style="background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 50%, #fdba74 100%);">
+      <div class="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/20 blur-2xl"></div>
+      <div class="absolute -bottom-12 -left-8 w-40 h-40 rounded-full bg-amber-300/30 blur-3xl"></div>
+
+      <div class="relative p-5">
+        <div class="flex items-start justify-between mb-4">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <div class="w-2 h-2 bg-red-500 rounded-full pulse-critical"></div>
+              <p class="text-[10px] uppercase tracking-[0.2em] font-bold text-amber-900">เร่งด่วน</p>
+            </div>
+            <h2 class="text-xl font-extrabold text-amber-950 leading-tight">ครบรอบประเมิน</h2>
+            <p class="text-xs text-amber-800/80 mt-0.5">3 ราย รอประเมินตอนนี้</p>
+          </div>
+          <div class="text-right">
+            <div class="font-display font-extrabold text-5xl text-amber-950 leading-none tabular-nums">3</div>
+            <p class="text-[10px] uppercase tracking-wider text-amber-800 mt-1">ราย</p>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <a href="assessment.html" class="bg-white/95 backdrop-blur rounded-xl p-3 flex items-center justify-between hover:bg-white transition active:scale-[0.98]">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-mono text-sm font-bold text-slate-900">HN 670012</span>
+                <span class="severity-1b text-[10px] font-bold px-1.5 py-0.5 rounded">1B</span>
+              </div>
+              <div class="text-[10px] text-red-700 font-semibold mt-0.5 flex items-center gap-1">
+                <i data-lucide="clock" class="w-2.5 h-2.5"></i>
+                เลย 32 นาที
+              </div>
+            </div>
+            <i data-lucide="arrow-right" class="w-4 h-4 text-amber-900"></i>
+          </a>
+          <a href="assessment.html" class="bg-white/95 backdrop-blur rounded-xl p-3 flex items-center justify-between hover:bg-white transition active:scale-[0.98]">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-mono text-sm font-bold text-slate-900">HN 670045</span>
+                <span class="severity-2a text-[10px] font-bold px-1.5 py-0.5 rounded">2A</span>
+              </div>
+              <div class="text-[10px] text-amber-800 font-semibold mt-0.5">ครบใน 18 นาที</div>
+            </div>
+            <i data-lucide="arrow-right" class="w-4 h-4 text-amber-900"></i>
+          </a>
         </div>
       </div>
     </div>
-    <nav class="flex-1 overflow-y-auto p-3 space-y-0.5">
-      <p class="px-3 pt-2 pb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">หลัก</p>
-      <a href="dashboard.html" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm tap ripple bg-brand-900 text-white font-bold ripple">
-        <i class="w-5 h-5" data-lucide="house"></i>หน้าแรก
-      </a>
-      <a href="vehicles.html" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm tap ripple text-slate-600 hover:bg-slate-50 font-medium ripple-dark">
-        <i class="w-5 h-5" data-lucide="car"></i>รถทั้งหมด
-        <span class="ml-auto bg-slate-100 text-slate-500 text-[10px] font-bold px-1.5 py-0.5 rounded font-mono">50</span>
-      </a>
-      <a href="expense.html" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm tap ripple text-slate-600 hover:bg-slate-50 font-medium ripple-dark">
-        <i class="w-5 h-5" data-lucide="receipt"></i>ค่าใช้จ่าย
-      </a>
-      <p class="px-3 pt-5 pb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">เพิ่มเติม</p>
-      <a href="#" class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-600 hover:bg-slate-50 text-sm font-medium tap ripple ripple-dark">
-        <i class="w-5 h-5" data-lucide="file-text"></i>เอกสาร
-        <span class="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">3</span>
-      </a>
-      <a href="#" class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-600 hover:bg-slate-50 text-sm font-medium tap ripple ripple-dark">
-        <i class="w-5 h-5" data-lucide="wrench"></i>ซ่อมบำรุง
-      </a>
-      <a href="#" class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-600 hover:bg-slate-50 text-sm font-medium tap ripple ripple-dark">
-        <i class="w-5 h-5" data-lucide="chart-column"></i>รายงาน
-      </a>
-      <p class="px-3 pt-5 pb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">ระบบ</p>
-      <a href="permission.html" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm tap ripple text-slate-600 hover:bg-slate-50 font-medium ripple-dark">
-        <i class="w-5 h-5" data-lucide="shield"></i>สิทธิ์การเข้าถึง
-      </a>
-      <a href="#" class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-600 hover:bg-slate-50 text-sm font-medium tap ripple ripple-dark">
-        <i class="w-5 h-5" data-lucide="settings"></i>ตั้งค่า
-      </a>
-      <a href="#" class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-600 hover:bg-slate-50 text-sm font-medium tap ripple ripple-dark">
-        <i class="w-5 h-5" data-lucide="circle-help"></i>ช่วยเหลือ
-      </a>
-    </nav>
-    <div class="border-t border-slate-100 p-3 safe-bottom">
-      <div class="flex items-center gap-3 p-2 rounded-xl tap ripple ripple-dark">
-        <div class="w-10 h-10 bg-brand-900 rounded-full flex items-center justify-center text-white font-bold text-sm">AD</div>
-        <div class="flex-1 min-w-0">
-          <p class="text-sm font-bold text-slate-900 leading-tight">Admin</p>
-          <p class="text-[11px] text-slate-500 truncate">admin@company.co.th</p>
-        </div>
-        <button class="w-8 h-8 hover:bg-slate-100 rounded-lg flex items-center justify-center">
-          <i class="w-4 h-4 text-slate-400" data-lucide="log-out"></i>
-        </button>
+  </div>
+
+  <!-- KPI 2x2 -->
+  <div class="px-5 pt-4 grid grid-cols-2 gap-3">
+    <div class="card-grad rounded-2xl p-4 shadow-card border border-slate-200/60 card-lift fade-up" style="animation-delay:0.1s">
+      <div class="flex items-center justify-between mb-2">
+        <div class="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center"><i data-lucide="users-round" class="w-4 h-4 text-brand-700"></i></div>
+        <span class="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">↑ 2</span>
       </div>
+      <div class="font-display font-extrabold text-4xl text-slate-900 tabular-nums" data-countup="18">0</div>
+      <div class="text-[11px] text-slate-500 font-medium mt-0.5">ผู้ป่วยในความดูแล</div>
+      <svg viewBox="0 0 100 24" class="w-full h-5 mt-2" preserveAspectRatio="none">
+        <path class="path-draw" d="M0,20 L20,18 L40,12 L60,10 L80,6 L100,8" fill="none" stroke="#0f766e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="card-grad rounded-2xl p-4 shadow-card border border-slate-200/60 card-lift fade-up" style="animation-delay:0.15s">
+      <div class="flex items-center justify-between mb-2">
+        <div class="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center"><i data-lucide="clipboard-check" class="w-4 h-4 text-brand-700"></i></div>
+      </div>
+      <div class="font-display font-extrabold text-4xl text-slate-900 tabular-nums" data-countup="12">0</div>
+      <div class="text-[11px] text-slate-500 font-medium mt-0.5">ประเมินวันนี้</div>
+      <svg viewBox="0 0 100 24" class="w-full h-5 mt-2" preserveAspectRatio="none">
+        <path class="path-draw" style="animation-delay:0.2s" d="M0,16 L20,18 L40,14 L60,16 L80,10 L100,12" fill="none" stroke="#0f766e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="card-grad rounded-2xl p-4 shadow-card border border-slate-200/60 card-lift fade-up" style="animation-delay:0.2s">
+      <div class="flex items-center justify-between mb-2">
+        <div class="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center"><i data-lucide="trending-down" class="w-4 h-4 text-emerald-600"></i></div>
+      </div>
+      <div class="font-display font-extrabold text-4xl text-emerald-600 tabular-nums" data-countup="7">0</div>
+      <div class="text-[11px] text-slate-500 font-medium mt-0.5">แผลกำลังหาย</div>
+      <svg viewBox="0 0 100 24" class="w-full h-5 mt-2" preserveAspectRatio="none">
+        <path class="path-draw" style="animation-delay:0.3s" d="M0,8 L20,10 L40,12 L60,14 L80,18 L100,20" fill="none" stroke="#059669" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="card-grad rounded-2xl p-4 shadow-card border border-red-200/60 card-lift fade-up relative overflow-hidden" style="animation-delay:0.25s">
+      <div class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full pulse-critical"></div>
+      <div class="flex items-center justify-between mb-2">
+        <div class="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center"><i data-lucide="alert-triangle" class="w-4 h-4 text-red-600"></i></div>
+      </div>
+      <div class="font-display font-extrabold text-4xl text-red-600 tabular-nums" data-countup="2">0</div>
+      <div class="text-[11px] text-slate-500 font-medium mt-0.5">ระดับ Cat 2B</div>
+      <svg viewBox="0 0 100 24" class="w-full h-5 mt-2" preserveAspectRatio="none">
+        <path class="path-draw" style="animation-delay:0.4s" d="M0,14 L20,14 L40,12 L60,14 L80,10 L100,8" fill="none" stroke="#dc2626" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Severity -->
+  <div class="px-5 pt-4">
+    <div class="card-grad rounded-2xl p-5 shadow-card border border-slate-200/60 fade-up" style="animation-delay:0.3s">
+      <div class="flex items-end justify-between mb-4">
+        <div>
+          <h3 class="text-sm font-bold text-slate-900">การกระจาย GLOBIAD</h3>
+          <p class="text-[10px] text-slate-400 mt-0.5 font-mono uppercase tracking-wider">18 ผู้ป่วยทั้งหมด</p>
+        </div>
+      </div>
+      <div class="flex items-end gap-2 h-32">
+        <div class="flex-1 flex flex-col items-center gap-1.5">
+          <div class="font-display font-bold text-slate-700 text-sm tabular-nums">8</div>
+          <div class="w-full bg-gradient-to-t from-emerald-600 to-emerald-400 rounded-t-md bar-anim" style="height:80%; animation-delay:0.4s"></div>
+          <div class="text-[10px] font-semibold text-emerald-700">1A</div>
+        </div>
+        <div class="flex-1 flex flex-col items-center gap-1.5">
+          <div class="font-display font-bold text-slate-700 text-sm tabular-nums">5</div>
+          <div class="w-full bg-gradient-to-t from-amber-500 to-amber-300 rounded-t-md bar-anim" style="height:55%; animation-delay:0.5s"></div>
+          <div class="text-[10px] font-semibold text-amber-700">1B</div>
+        </div>
+        <div class="flex-1 flex flex-col items-center gap-1.5">
+          <div class="font-display font-bold text-slate-700 text-sm tabular-nums">3</div>
+          <div class="w-full bg-gradient-to-t from-orange-500 to-orange-300 rounded-t-md bar-anim" style="height:35%; animation-delay:0.6s"></div>
+          <div class="text-[10px] font-semibold text-orange-700">2A</div>
+        </div>
+        <div class="flex-1 flex flex-col items-center gap-1.5">
+          <div class="font-display font-bold text-slate-700 text-sm tabular-nums">2</div>
+          <div class="w-full bg-gradient-to-t from-red-600 to-red-400 rounded-t-md bar-anim" style="height:22%; animation-delay:0.7s"></div>
+          <div class="text-[10px] font-semibold text-red-700">2B</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent -->
+  <div class="px-5 pt-4">
+    <div class="flex items-center justify-between mb-3">
+      <div>
+        <h3 class="text-sm font-bold text-slate-900">ประเมินล่าสุด</h3>
+        <p class="text-[10px] text-slate-400 font-mono uppercase tracking-wider">3 ราย วันนี้</p>
+      </div>
+      <a href="patients.html" class="text-xs font-bold text-brand-700 flex items-center gap-1">ทั้งหมด<i data-lucide="arrow-right" class="w-3 h-3"></i></a>
+    </div>
+    <div class="space-y-2">
+      <a href="patient-detail.html" class="block card-grad rounded-xl p-3 shadow-card border border-slate-200/60 card-lift fade-up" style="animation-delay:0.4s">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 bg-gradient-to-br from-amber-100 to-amber-200 rounded-xl flex items-center justify-center flex-shrink-0">
+            <span class="font-mono font-bold text-amber-900 text-xs">1B</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="font-mono text-sm font-bold text-slate-900">HN 670012</span>
+              <i data-lucide="trending-up" class="w-3 h-3 text-orange-600"></i>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-0.5">หญิง, 72 ปี · เตียง 15</div>
+          </div>
+          <div class="text-right flex-shrink-0">
+            <div class="text-[11px] text-slate-400 font-mono">2 ชม.</div>
+          </div>
+        </div>
+      </a>
+      <a href="patient-detail.html" class="block card-grad rounded-xl p-3 shadow-card border border-slate-200/60 card-lift fade-up" style="animation-delay:0.45s">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 bg-gradient-to-br from-orange-100 to-orange-200 rounded-xl flex items-center justify-center flex-shrink-0">
+            <span class="font-mono font-bold text-orange-900 text-xs">2A</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="font-mono text-sm font-bold text-slate-900">HN 670045</span>
+              <i data-lucide="minus" class="w-3 h-3 text-slate-400"></i>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-0.5">ชาย, 68 ปี · เตียง 22</div>
+          </div>
+          <div class="text-right flex-shrink-0">
+            <div class="text-[11px] text-slate-400 font-mono">4 ชม.</div>
+          </div>
+        </div>
+      </a>
+      <a href="patient-detail.html" class="block card-grad rounded-xl p-3 shadow-card border border-slate-200/60 card-lift fade-up" style="animation-delay:0.5s">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-xl flex items-center justify-center flex-shrink-0">
+            <span class="font-mono font-bold text-emerald-900 text-xs">1A</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="font-mono text-sm font-bold text-slate-900">HN 670089</span>
+              <i data-lucide="trending-down" class="w-3 h-3 text-emerald-600"></i>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-0.5">หญิง, 81 ปี · เตียง 8</div>
+          </div>
+          <div class="text-right flex-shrink-0">
+            <div class="text-[11px] text-slate-400 font-mono">เมื่อวาน</div>
+          </div>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-slate-200/60 px-2 py-2 flex items-center justify-around z-30 md:hidden">
+    <a href="dashboard.html" class="flex flex-col items-center gap-1 px-4 py-1.5">
+      <i data-lucide="home" class="w-5 h-5 text-brand-700"></i>
+      <span class="text-[10px] font-bold text-brand-700">หน้าหลัก</span>
+    </a>
+    <a href="patients.html" class="flex flex-col items-center gap-1 px-4 py-1.5">
+      <i data-lucide="users" class="w-5 h-5 text-slate-400"></i>
+      <span class="text-[10px] font-medium text-slate-500">ผู้ป่วย</span>
+    </a>
+    <a href="assessment.html" class="flex flex-col items-center gap-1 -mt-6">
+      <div class="w-14 h-14 bg-gradient-to-br from-brand-700 to-brand-900 rounded-full flex items-center justify-center shadow-card-hover ring-4 ring-white">
+        <i data-lucide="plus" class="w-7 h-7 text-white"></i>
+      </div>
+    </a>
+    <a href="reports.html" class="flex flex-col items-center gap-1 px-4 py-1.5">
+      <i data-lucide="bar-chart-3" class="w-5 h-5 text-slate-400"></i>
+      <span class="text-[10px] font-medium text-slate-500">รายงาน</span>
+    </a>
+    <a href="settings.html" class="flex flex-col items-center gap-1 px-4 py-1.5">
+      <i data-lucide="settings" class="w-5 h-5 text-slate-400"></i>
+      <span class="text-[10px] font-medium text-slate-500">ตั้งค่า</span>
+    </a>
+  </div>
+</div>
+
+
+<!-- DESKTOP -->
+<div class="hidden md:flex min-h-screen">
+  <aside id="sidebar" class="w-64 bg-white/80 backdrop-blur-xl border-r border-slate-200/60 flex flex-col">
+    <div class="p-6 border-b border-slate-100">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-gradient-to-br from-brand-700 to-brand-900 rounded-xl flex items-center justify-center shadow-card">
+          <i data-lucide="shield-plus" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-sm font-bold text-slate-900">IAD SmartCare</h1>
+          <p class="text-[10px] text-slate-500 uppercase tracking-[0.15em] font-semibold">Ward 3A</p>
+        </div>
+      </div>
+    </div>
+
+    <nav class="flex-1 p-4 space-y-1">
+      <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gradient-to-r from-brand-50 to-brand-100/40 text-brand-900 font-semibold shadow-sm">
+        <i data-lucide="home" class="w-5 h-5"></i>
+        <span class="text-sm">หน้าหลัก</span>
+      </a>
+      <a href="patients.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-50 transition">
+        <i data-lucide="users" class="w-5 h-5"></i>
+        <span class="text-sm">ผู้ป่วย</span>
+        <span class="ml-auto text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-bold">18</span>
+      </a>
+      <a href="assessment.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-50 transition">
+        <i data-lucide="clipboard-check" class="w-5 h-5"></i>
+        <span class="text-sm">ประเมินใหม่</span>
+      </a>
+      <a href="reports.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-50 transition">
+        <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+        <span class="text-sm">รายงาน</span>
+      </a>
+
+      <div class="pt-4 mt-4 border-t border-slate-100">
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] px-3 mb-2">ระบบ</p>
+        <a href="users.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-50 transition">
+          <i data-lucide="user-cog" class="w-5 h-5"></i>
+          <span class="text-sm">จัดการผู้ใช้</span>
+        </a>
+        <a href="settings.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-50 transition">
+          <i data-lucide="settings" class="w-5 h-5"></i>
+          <span class="text-sm">ตั้งค่า</span>
+        </a>
+      </div>
+    </nav>
+
+    <div class="p-4 border-t border-slate-100">
+      <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 cursor-pointer transition" onclick="openModal('user-menu-modal')">
+        <div class="relative">
+          <div class="w-9 h-9 bg-gradient-to-br from-brand-700 to-brand-900 rounded-full flex items-center justify-center text-white text-xs font-bold">ณธ</div>
+          <div class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white"></div>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-bold text-slate-900 truncate">ณัฐธิดา ใจดี</div>
+          <div class="text-[10px] text-slate-500 truncate">พยาบาลประจำการ</div>
+        </div>
+        <i data-lucide="chevron-up" class="w-4 h-4 text-slate-400"></i>
+      </div>
+    </div>
+  </aside>
+
+  <main class="flex-1 overflow-auto relative">
+    <button id="sidebar-toggle-btn" onclick="toggleSidebar()" class="hidden md:flex absolute top-3.5 left-3 z-30 w-9 h-9 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 shadow-card items-center justify-center" title="ซ่อน/แสดงเมนู">
+      <i data-lucide="panel-left-close" id="sidebar-toggle-icon" class="w-4 h-4 text-slate-700"></i>
+    </button>
+
+    <header class="bg-white/80 backdrop-blur-xl border-b border-slate-200/60 pl-16 pr-8 py-4 flex items-center justify-between sticky top-0 z-20">
+      <div>
+        <div class="flex items-center gap-2">
+          <p class="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold">สวัสดีตอนบ่าย</p>
+          <span class="text-slate-300">·</span>
+          <p class="text-[10px] text-slate-500 font-mono">11 พ.ค. 2569</p>
+        </div>
+        <h2 class="text-2xl font-extrabold text-slate-900 mt-0.5">ภาพรวมของคุณวันนี้</h2>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="relative">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+          <input type="text" placeholder="HN, AN..." class="w-64 bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm shadow-card focus:outline-none focus:border-brand-700 focus:ring-4 focus:ring-brand-100">
+          <kbd class="hidden lg:inline absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200">⌘K</kbd>
+        </div>
+        <button onclick="openModal('notif-modal')" class="w-10 h-10 bg-white hover:bg-slate-50 rounded-xl flex items-center justify-center relative shadow-card transition">
+          <i data-lucide="bell" class="w-5 h-5 text-slate-700"></i>
+          <span class="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 bg-red-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center">3</span>
+        </button>
+        <a href="assessment.html" class="bg-gradient-to-br from-brand-700 to-brand-900 hover:from-brand-800 hover:to-brand-950 text-white font-bold px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm shadow-card-hover transition">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          ประเมินใหม่
+        </a>
+      </div>
+    </header>
+
+    <div class="p-8 space-y-6">
+      <!-- HERO ROW -->
+      <div class="grid grid-cols-3 gap-6">
+        <div class="col-span-2 relative overflow-hidden rounded-3xl noise shadow-card fade-up" style="background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 40%, #fdba74 100%);">
+          <div class="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/20 blur-3xl"></div>
+          <div class="absolute -bottom-20 left-1/3 w-64 h-64 rounded-full bg-amber-300/20 blur-3xl"></div>
+
+          <div class="relative p-7">
+            <div class="flex items-start justify-between mb-6">
+              <div>
+                <div class="flex items-center gap-2 mb-2">
+                  <div class="w-2 h-2 bg-red-500 rounded-full pulse-critical"></div>
+                  <p class="text-[10px] uppercase tracking-[0.25em] font-extrabold text-amber-900">เร่งด่วน · ต้องทำตอนนี้</p>
+                </div>
+                <h2 class="text-3xl font-extrabold text-amber-950 leading-tight">ครบรอบประเมิน <span class="font-display italic">3</span> ราย</h2>
+                <p class="text-sm text-amber-800/80 mt-1.5">ทำตอนนี้เพื่อรักษามาตรฐาน 8-12 ชม. ตาม guideline</p>
+              </div>
+              <button class="bg-white/70 hover:bg-white backdrop-blur text-amber-900 text-xs font-bold px-3 py-1.5 rounded-lg transition flex items-center gap-1">
+                ดูทั้งหมด <i data-lucide="arrow-right" class="w-3 h-3"></i>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3">
+              <a href="assessment.html" class="bg-white/95 backdrop-blur rounded-2xl p-4 hover:bg-white transition group card-lift shadow-sm">
+                <div class="flex items-center justify-between mb-3">
+                  <span class="severity-1b text-[10px] font-bold px-2 py-0.5 rounded">Cat 1B</span>
+                  <i data-lucide="clock" class="w-3.5 h-3.5 text-red-600"></i>
+                </div>
+                <div class="font-mono font-bold text-slate-900 text-sm">HN 670012</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">หญิง, 72 · เตียง 15</div>
+                <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+                  <span class="text-[10px] text-red-700 font-bold">เลย 32 นาที</span>
+                  <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-400 group-hover:text-brand-700 group-hover:translate-x-0.5 transition"></i>
+                </div>
+              </a>
+              <a href="assessment.html" class="bg-white/95 backdrop-blur rounded-2xl p-4 hover:bg-white transition group card-lift shadow-sm">
+                <div class="flex items-center justify-between mb-3">
+                  <span class="severity-2a text-[10px] font-bold px-2 py-0.5 rounded">Cat 2A</span>
+                  <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-600"></i>
+                </div>
+                <div class="font-mono font-bold text-slate-900 text-sm">HN 670045</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">ชาย, 68 · เตียง 22</div>
+                <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+                  <span class="text-[10px] text-amber-700 font-bold">ครบใน 18 นาที</span>
+                  <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-400 group-hover:text-brand-700 group-hover:translate-x-0.5 transition"></i>
+                </div>
+              </a>
+              <a href="assessment.html" class="bg-white/95 backdrop-blur rounded-2xl p-4 hover:bg-white transition group card-lift shadow-sm">
+                <div class="flex items-center justify-between mb-3">
+                  <span class="severity-1a text-[10px] font-bold px-2 py-0.5 rounded">Cat 1A</span>
+                  <i data-lucide="clock" class="w-3.5 h-3.5 text-slate-400"></i>
+                </div>
+                <div class="font-mono font-bold text-slate-900 text-sm">HN 670089</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">หญิง, 81 · เตียง 8</div>
+                <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+                  <span class="text-[10px] text-slate-500 font-bold">ครบในอีก 1 ชม.</span>
+                  <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-400 group-hover:text-brand-700 group-hover:translate-x-0.5 transition"></i>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="relative overflow-hidden rounded-3xl noise shadow-card fade-up" style="background: linear-gradient(135deg, #0f766e 0%, #134e4a 60%, #042f2e 100%); animation-delay:0.1s">
+          <div class="absolute -top-20 -right-20 w-64 h-64 rounded-full border-[40px] border-white/5"></div>
+          <div class="absolute -bottom-16 -left-16 w-48 h-48 rounded-full border-[30px] border-white/5"></div>
+
+          <div class="relative p-6 h-full flex flex-col">
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-[10px] uppercase tracking-[0.25em] font-bold text-white/60">การประเมินเดือนนี้</p>
+              <i data-lucide="activity" class="w-4 h-4 text-white/40"></i>
+            </div>
+            <div class="font-display font-extrabold text-7xl text-white tabular-nums leading-none mt-2" data-countup="412">0</div>
+            <div class="text-xs text-emerald-300 mt-2 flex items-center gap-1.5 font-semibold">
+              <i data-lucide="trending-up" class="w-3.5 h-3.5"></i>
+              เพิ่มขึ้น 14% จากเดือนก่อน
+            </div>
+
+            <div class="mt-auto pt-6">
+              <svg viewBox="0 0 200 50" class="w-full h-12" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="spark-grad" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stop-color="rgba(255,255,255,0.4)"/>
+                    <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+                  </linearGradient>
+                </defs>
+                <path class="path-draw" d="M0,40 L20,38 L40,30 L60,32 L80,22 L100,28 L120,18 L140,20 L160,12 L180,15 L200,8"
+                      fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M0,40 L20,38 L40,30 L60,32 L80,22 L100,28 L120,18 L140,20 L160,12 L180,15 L200,8 L200,50 L0,50 Z"
+                      fill="url(#spark-grad)" opacity="0.5" style="animation:fade-up 1.5s 0.5s backwards"/>
+              </svg>
+              <div class="flex justify-between text-[9px] text-white/50 font-mono mt-1">
+                <span>ม.ค.</span><span>มี.ค.</span><span>พ.ค.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI Row -->
+      <div class="grid grid-cols-4 gap-4">
+        <div class="card-grad rounded-2xl p-5 shadow-card border border-slate-200/60 card-lift fade-up" style="animation-delay:0.15s">
+          <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 bg-brand-50 rounded-xl flex items-center justify-center"><i data-lucide="users-round" class="w-5 h-5 text-brand-700"></i></div>
+            <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-full">+ 2 วันนี้</span>
+          </div>
+          <div class="font-display font-extrabold text-5xl text-slate-900 tabular-nums" data-countup="18">0</div>
+          <div class="text-sm text-slate-500 mt-1 font-medium">ผู้ป่วยในความดูแล</div>
+          <svg viewBox="0 0 100 24" class="w-full h-7 mt-3" preserveAspectRatio="none">
+            <path class="path-draw" d="M0,20 L15,18 L30,16 L45,12 L60,10 L75,8 L100,6" fill="none" stroke="#0f766e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="card-grad rounded-2xl p-5 shadow-card border border-slate-200/60 card-lift fade-up" style="animation-delay:0.2s">
+          <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 bg-brand-50 rounded-xl flex items-center justify-center"><i data-lucide="clipboard-check" class="w-5 h-5 text-brand-700"></i></div>
+          </div>
+          <div class="font-display font-extrabold text-5xl text-slate-900 tabular-nums" data-countup="12">0</div>
+          <div class="text-sm text-slate-500 mt-1 font-medium">ประเมินวันนี้</div>
+          <svg viewBox="0 0 100 24" class="w-full h-7 mt-3" preserveAspectRatio="none">
+            <path class="path-draw" style="animation-delay:0.2s" d="M0,16 L15,14 L30,18 L45,12 L60,14 L75,10 L100,8" fill="none" stroke="#0f766e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="card-grad rounded-2xl p-5 shadow-card border border-slate-200/60 card-lift fade-up" style="animation-delay:0.25s">
+          <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center"><i data-lucide="trending-down" class="w-5 h-5 text-emerald-600"></i></div>
+            <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-full">39% ของทั้งหมด</span>
+          </div>
+          <div class="font-display font-extrabold text-5xl text-emerald-600 tabular-nums" data-countup="7">0</div>
+          <div class="text-sm text-slate-500 mt-1 font-medium">แผลกำลังหาย</div>
+          <svg viewBox="0 0 100 24" class="w-full h-7 mt-3" preserveAspectRatio="none">
+            <path class="path-draw" style="animation-delay:0.3s" d="M0,6 L15,8 L30,10 L45,12 L60,14 L75,18 L100,20" fill="none" stroke="#059669" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="card-grad rounded-2xl p-5 shadow-card border border-red-200/60 card-lift fade-up relative overflow-hidden" style="animation-delay:0.3s">
+          <div class="absolute top-3 right-3 w-2 h-2 bg-red-500 rounded-full pulse-critical"></div>
+          <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center"><i data-lucide="alert-triangle" class="w-5 h-5 text-red-600"></i></div>
+            <span class="text-[10px] font-bold text-red-700 bg-red-50 px-2 py-1 rounded-full">เฝ้าระวัง</span>
+          </div>
+          <div class="font-display font-extrabold text-5xl text-red-600 tabular-nums" data-countup="2">0</div>
+          <div class="text-sm text-slate-500 mt-1 font-medium">ระดับ Cat 2B</div>
+          <svg viewBox="0 0 100 24" class="w-full h-7 mt-3" preserveAspectRatio="none">
+            <path class="path-draw" style="animation-delay:0.4s" d="M0,14 L15,16 L30,14 L45,12 L60,10 L75,8 L100,6" fill="none" stroke="#dc2626" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Chart Row -->
+      <div class="grid grid-cols-3 gap-6">
+        <div class="col-span-2 card-grad rounded-2xl p-6 shadow-card border border-slate-200/60 fade-up" style="animation-delay:0.35s">
+          <div class="flex items-end justify-between mb-6">
+            <div>
+              <h3 class="text-base font-bold text-slate-900">การประเมินวันนี้</h3>
+              <p class="text-xs text-slate-500 mt-0.5 font-mono uppercase tracking-wider">เป็นชั่วโมง · 12 ครั้งทั้งหมด</p>
+            </div>
+            <div class="flex items-center gap-1.5 text-xs">
+              <div class="w-2.5 h-2.5 bg-brand-700 rounded-sm"></div>
+              <span class="text-slate-600 font-medium">ประเมิน</span>
+              <div class="w-2.5 h-2.5 bg-amber-400 rounded-sm ml-3"></div>
+              <span class="text-slate-600 font-medium">มี Cat ≥2</span>
+            </div>
+          </div>
+
+          <div class="flex items-end gap-2 h-44">
+            <div class="flex-1 flex flex-col items-center gap-2"><span class="text-[10px] font-mono text-slate-400">0</span><div class="w-full bg-slate-100 rounded-md" style="height:5%"></div><span class="text-[10px] text-slate-400 font-mono">6</span></div>
+            <div class="flex-1 flex flex-col items-center gap-2"><span class="text-[10px] font-mono text-slate-500">2</span><div class="w-full bg-gradient-to-t from-brand-700 to-brand-500 rounded-md bar-anim" style="height:28%; animation-delay:0.4s"></div><span class="text-[10px] text-slate-400 font-mono">8</span></div>
+            <div class="flex-1 flex flex-col items-center gap-2"><span class="text-[10px] font-mono text-slate-500">3</span><div class="w-full bg-gradient-to-t from-brand-700 to-brand-500 rounded-md bar-anim" style="height:42%; animation-delay:0.5s"></div><span class="text-[10px] text-slate-400 font-mono">10</span></div>
+            <div class="flex-1 flex flex-col items-center gap-2"><span class="text-[10px] font-mono text-slate-500">1</span><div class="w-full bg-gradient-to-t from-amber-500 to-amber-300 rounded-md bar-anim" style="height:15%; animation-delay:0.6s"></div><span class="text-[10px] text-slate-400 font-mono">12</span></div>
+            <div class="flex-1 flex flex-col items-center gap-2"><span class="text-[10px] font-mono text-slate-700 font-bold">4</span><div class="w-full bg-gradient-to-t from-brand-700 to-brand-500 rounded-md bar-anim" style="height:58%; animation-delay:0.7s"></div><span class="text-[10px] text-slate-700 font-mono font-bold">14</span></div>
+            <div class="flex-1 flex flex-col items-center gap-2"><span class="text-[10px] font-mono text-slate-500">2</span><div class="w-full bg-gradient-to-t from-amber-500 to-amber-300 rounded-md bar-anim" style="height:28%; animation-delay:0.8s"></div><span class="text-[10px] text-slate-400 font-mono">16</span></div>
+            <div class="flex-1 flex flex-col items-center gap-2"><span class="text-[10px] font-mono text-slate-400">0</span><div class="w-full bg-slate-100 rounded-md bar-anim" style="height:8%; animation-delay:0.9s"></div><span class="text-[10px] text-slate-400 font-mono">18</span></div>
+            <div class="flex-1 flex flex-col items-center gap-2"><span class="text-[10px] font-mono text-slate-400">0</span><div class="w-full bg-slate-100 rounded-md bar-anim" style="height:8%; animation-delay:1s"></div><span class="text-[10px] text-slate-400 font-mono">20</span></div>
+            <div class="flex-1 flex flex-col items-center gap-2"><span class="text-[10px] font-mono text-slate-400">0</span><div class="w-full bg-slate-100 rounded-md bar-anim" style="height:8%; animation-delay:1.1s"></div><span class="text-[10px] text-slate-400 font-mono">22</span></div>
+          </div>
+
+          <div class="flex items-center justify-between mt-5 pt-5 border-t border-slate-100 text-xs">
+            <span class="text-slate-500">ช่วงคาดว่าหนาแน่น: <span class="font-bold text-slate-900">14:00–16:00</span></span>
+            <span class="text-slate-500">รอบถัดไป: <span class="font-bold text-slate-900 font-mono">18:00</span></span>
+          </div>
+        </div>
+
+        <div class="card-grad rounded-2xl p-6 shadow-card border border-slate-200/60 fade-up" style="animation-delay:0.4s">
+          <div class="flex items-end justify-between mb-4">
+            <div>
+              <h3 class="text-base font-bold text-slate-900">การกระจาย</h3>
+              <p class="text-xs text-slate-500 mt-0.5 font-mono uppercase tracking-wider">GLOBIAD</p>
+            </div>
+          </div>
+
+          <div class="relative flex items-center justify-center my-4">
+            <svg viewBox="0 0 160 160" class="w-44 h-44 -rotate-90">
+              <circle cx="80" cy="80" r="58" fill="none" stroke="#f1f5f9" stroke-width="20"/>
+              <circle class="donut-seg" style="animation-delay:0.5s" cx="80" cy="80" r="58" fill="none" stroke="#10b981" stroke-width="20" stroke-dasharray="161 365" stroke-dashoffset="0"/>
+              <circle class="donut-seg" style="animation-delay:0.6s" cx="80" cy="80" r="58" fill="none" stroke="#f59e0b" stroke-width="20" stroke-dasharray="101 365" stroke-dashoffset="-161"/>
+              <circle class="donut-seg" style="animation-delay:0.7s" cx="80" cy="80" r="58" fill="none" stroke="#f97316" stroke-width="20" stroke-dasharray="61 365" stroke-dashoffset="-262"/>
+              <circle class="donut-seg" style="animation-delay:0.8s" cx="80" cy="80" r="58" fill="none" stroke="#ef4444" stroke-width="20" stroke-dasharray="40 365" stroke-dashoffset="-323"/>
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <div class="font-display font-extrabold text-3xl text-slate-900 tabular-nums" data-countup="18">0</div>
+              <div class="text-[10px] text-slate-500 uppercase tracking-wider font-bold">ผู้ป่วย</div>
+            </div>
+          </div>
+
+          <div class="space-y-1.5 mt-4">
+            <div class="flex items-center justify-between text-xs">
+              <span class="flex items-center gap-2"><div class="w-2.5 h-2.5 bg-emerald-500 rounded-sm"></div><span class="text-slate-700 font-medium">Cat 1A</span></span>
+              <span class="font-mono font-bold text-slate-900">8 · 44%</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="flex items-center gap-2"><div class="w-2.5 h-2.5 bg-amber-500 rounded-sm"></div><span class="text-slate-700 font-medium">Cat 1B</span></span>
+              <span class="font-mono font-bold text-slate-900">5 · 28%</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="flex items-center gap-2"><div class="w-2.5 h-2.5 bg-orange-500 rounded-sm"></div><span class="text-slate-700 font-medium">Cat 2A</span></span>
+              <span class="font-mono font-bold text-slate-900">3 · 17%</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="flex items-center gap-2"><div class="w-2.5 h-2.5 bg-red-500 rounded-sm"></div><span class="text-slate-700 font-medium">Cat 2B</span></span>
+              <span class="font-mono font-bold text-slate-900">2 · 11%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent table -->
+      <div class="card-grad rounded-2xl border border-slate-200/60 overflow-hidden shadow-card fade-up" style="animation-delay:0.45s">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <h3 class="text-base font-bold text-slate-900">ประเมินล่าสุด</h3>
+            <p class="text-xs text-slate-500 mt-0.5 font-mono uppercase tracking-wider">4 รายการ · เรียงตามเวลา</p>
+          </div>
+          <a href="patients.html" class="text-sm font-bold text-brand-700 hover:underline flex items-center gap-1">ดูทั้งหมด<i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></a>
+        </div>
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50/50 text-[10px] uppercase tracking-[0.15em] text-slate-500">
+            <tr>
+              <th class="px-6 py-3 text-left font-bold">ผู้ป่วย</th>
+              <th class="px-6 py-3 text-left font-bold">เพศ/อายุ</th>
+              <th class="px-6 py-3 text-left font-bold">เตียง</th>
+              <th class="px-6 py-3 text-left font-bold">ระดับ</th>
+              <th class="px-6 py-3 text-left font-bold">แนวโน้ม</th>
+              <th class="px-6 py-3 text-right font-bold">ประเมินล่าสุด</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr class="hover:bg-slate-50/60 cursor-pointer transition" onclick="window.location.href='patient-detail.html'">
+              <td class="px-6 py-3.5">
+                <div class="flex items-center gap-3">
+                  <div class="w-9 h-9 bg-gradient-to-br from-amber-100 to-amber-200 rounded-lg flex items-center justify-center"><span class="font-mono font-bold text-amber-900 text-[10px]">1B</span></div>
+                  <span class="font-mono font-bold text-slate-900">HN 670012</span>
+                </div>
+              </td>
+              <td class="px-6 py-3.5 text-slate-700">หญิง, 72</td>
+              <td class="px-6 py-3.5 text-slate-700 font-mono">15</td>
+              <td class="px-6 py-3.5"><span class="severity-1b text-[10px] font-bold px-1.5 py-0.5 rounded">Cat 1B</span></td>
+              <td class="px-6 py-3.5">
+                <span class="inline-flex items-center gap-1 text-xs text-orange-700 font-semibold"><i data-lucide="trending-up" class="w-3.5 h-3.5"></i>แย่ลง</span>
+              </td>
+              <td class="px-6 py-3.5 text-right text-xs text-slate-500 font-mono">2 ชม. ที่แล้ว</td>
+            </tr>
+            <tr class="hover:bg-slate-50/60 cursor-pointer transition" onclick="window.location.href='patient-detail.html'">
+              <td class="px-6 py-3.5">
+                <div class="flex items-center gap-3">
+                  <div class="w-9 h-9 bg-gradient-to-br from-orange-100 to-orange-200 rounded-lg flex items-center justify-center"><span class="font-mono font-bold text-orange-900 text-[10px]">2A</span></div>
+                  <span class="font-mono font-bold text-slate-900">HN 670045</span>
+                </div>
+              </td>
+              <td class="px-6 py-3.5 text-slate-700">ชาย, 68</td>
+              <td class="px-6 py-3.5 text-slate-700 font-mono">22</td>
+              <td class="px-6 py-3.5"><span class="severity-2a text-[10px] font-bold px-1.5 py-0.5 rounded">Cat 2A</span></td>
+              <td class="px-6 py-3.5">
+                <span class="inline-flex items-center gap-1 text-xs text-slate-500 font-semibold"><i data-lucide="minus" class="w-3.5 h-3.5"></i>คงที่</span>
+              </td>
+              <td class="px-6 py-3.5 text-right text-xs text-slate-500 font-mono">4 ชม. ที่แล้ว</td>
+            </tr>
+            <tr class="hover:bg-slate-50/60 cursor-pointer transition" onclick="window.location.href='patient-detail.html'">
+              <td class="px-6 py-3.5">
+                <div class="flex items-center gap-3">
+                  <div class="w-9 h-9 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-lg flex items-center justify-center"><span class="font-mono font-bold text-emerald-900 text-[10px]">1A</span></div>
+                  <span class="font-mono font-bold text-slate-900">HN 670089</span>
+                </div>
+              </td>
+              <td class="px-6 py-3.5 text-slate-700">หญิง, 81</td>
+              <td class="px-6 py-3.5 text-slate-700 font-mono">8</td>
+              <td class="px-6 py-3.5"><span class="severity-1a text-[10px] font-bold px-1.5 py-0.5 rounded">Cat 1A</span></td>
+              <td class="px-6 py-3.5">
+                <span class="inline-flex items-center gap-1 text-xs text-emerald-700 font-semibold"><i data-lucide="trending-down" class="w-3.5 h-3.5"></i>ดีขึ้น</span>
+              </td>
+              <td class="px-6 py-3.5 text-right text-xs text-slate-500 font-mono">เมื่อวาน</td>
+            </tr>
+            <tr class="hover:bg-slate-50/60 cursor-pointer transition" onclick="window.location.href='patient-detail.html'">
+              <td class="px-6 py-3.5">
+                <div class="flex items-center gap-3">
+                  <div class="w-9 h-9 bg-gradient-to-br from-red-100 to-red-200 rounded-lg flex items-center justify-center relative">
+                    <span class="font-mono font-bold text-red-900 text-[10px]">2B</span>
+                    <span class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full pulse-critical"></span>
+                  </div>
+                  <span class="font-mono font-bold text-slate-900">HN 670102</span>
+                </div>
+              </td>
+              <td class="px-6 py-3.5 text-slate-700">หญิง, 65</td>
+              <td class="px-6 py-3.5 text-slate-700 font-mono">11</td>
+              <td class="px-6 py-3.5"><span class="severity-2b text-[10px] font-bold px-1.5 py-0.5 rounded">Cat 2B</span></td>
+              <td class="px-6 py-3.5">
+                <span class="inline-flex items-center gap-1 text-xs text-red-700 font-semibold"><i data-lucide="trending-up" class="w-3.5 h-3.5"></i>เฝ้าระวัง</span>
+              </td>
+              <td class="px-6 py-3.5 text-right text-xs text-slate-500 font-mono">เมื่อวาน</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+
+<!-- MODAL: Notifications -->
+<div id="notif-modal" class="hidden fixed inset-0 modal-backdrop z-50 flex items-end md:items-center justify-center p-0 md:p-6" onclick="if(event.target===this) closeModal('notif-modal')">
+  <div class="modal-content bg-white rounded-t-3xl md:rounded-3xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col shadow-card-hover">
+    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+      <div>
+        <h3 class="text-base font-bold text-slate-900">การแจ้งเตือน</h3>
+        <p class="text-xs text-slate-500 mt-0.5">3 รายการที่ยังไม่ได้อ่าน</p>
+      </div>
+      <button onclick="closeModal('notif-modal')" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center">
+        <i data-lucide="x" class="w-4 h-4 text-slate-500"></i>
+      </button>
+    </div>
+    <div class="flex-1 overflow-y-auto p-4 space-y-2">
+      <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-3">
+        <div class="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center flex-shrink-0">
+          <i data-lucide="clock-alert" class="w-5 h-5 text-white"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-bold text-amber-900">ครบรอบประเมิน — HN 670012</div>
+          <div class="text-xs text-amber-700 mt-0.5">ผ่านมา 32 นาที · Cat 1B</div>
+          <div class="text-[10px] text-amber-600 mt-1 font-mono">10:32 น.</div>
+        </div>
+      </div>
+      <div class="bg-red-50 border border-red-200 rounded-xl p-3 flex gap-3">
+        <div class="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center flex-shrink-0">
+          <i data-lucide="alert-triangle" class="w-5 h-5 text-white"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-bold text-red-900">ระดับแผลเพิ่มขึ้น — HN 670102</div>
+          <div class="text-xs text-red-700 mt-0.5">Cat 2A → Cat 2B · เฝ้าระวัง</div>
+          <div class="text-[10px] text-red-600 mt-1 font-mono">เมื่อวาน 22:15 น.</div>
+        </div>
+      </div>
+      <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 flex gap-3">
+        <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+          <i data-lucide="user-plus" class="w-5 h-5 text-white"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-bold text-blue-900">รับผู้ป่วยใหม่</div>
+          <div class="text-xs text-blue-700 mt-0.5">HN 670156 · เตียง 12</div>
+          <div class="text-[10px] text-blue-600 mt-1 font-mono">เมื่อวาน 18:42 น.</div>
+        </div>
+      </div>
+    </div>
+    <div class="px-6 py-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
+      <button class="text-xs font-semibold text-slate-600">ทำเป็นอ่านแล้วทั้งหมด</button>
+      <button onclick="closeModal('notif-modal')" class="text-xs font-bold text-brand-700">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: User Menu -->
+<div id="user-menu-modal" class="hidden fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-6" onclick="if(event.target===this) closeModal('user-menu-modal')">
+  <div class="modal-content bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-card-hover">
+    <div class="px-6 py-5 border-b border-slate-100 flex items-center gap-4">
+      <div class="w-14 h-14 bg-gradient-to-br from-brand-700 to-brand-900 rounded-full flex items-center justify-center text-white text-base font-bold">ณธ</div>
+      <div>
+        <div class="text-base font-bold text-slate-900">ณัฐธิดา ใจดี</div>
+        <div class="text-xs text-slate-500">พยาบาลประจำการ · Ward 3A</div>
+      </div>
+    </div>
+    <div class="p-3 space-y-1">
+      <a href="settings.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-700 hover:bg-slate-50"><i data-lucide="user" class="w-4 h-4"></i><span class="text-sm">โปรไฟล์ของฉัน</span></a>
+      <a href="settings.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-700 hover:bg-slate-50"><i data-lucide="lock" class="w-4 h-4"></i><span class="text-sm">เปลี่ยนรหัสผ่าน</span></a>
+      <a href="settings.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-700 hover:bg-slate-50"><i data-lucide="bell" class="w-4 h-4"></i><span class="text-sm">การแจ้งเตือน</span></a>
+    </div>
+    <div class="border-t border-slate-100 p-3">
+      <a href="login.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-600 hover:bg-red-50"><i data-lucide="log-out" class="w-4 h-4"></i><span class="text-sm font-semibold">ออกจากระบบ</span></a>
     </div>
   </div>
 </div>
 
 <script>
-// Sidebar toggle (desktop only)
+function openModal(id) { document.getElementById(id).classList.remove('hidden'); document.body.style.overflow = 'hidden'; setTimeout(() => lucide.createIcons(), 50); }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); document.body.style.overflow = ''; }
+
 function toggleSidebar() {
-  document.body.classList.toggle('sidebar-collapsed');
-  try {
-    localStorage.setItem('fleet_sidebar_collapsed',
-      document.body.classList.contains('sidebar-collapsed') ? '1' : '0');
-  } catch(e) {}
-  setTimeout(() => lucide.createIcons(), 50);
-}
-// Restore state on load
-(function() {
-  try {
-    if (localStorage.getItem('fleet_sidebar_collapsed') === '1') {
-      document.body.classList.add('sidebar-collapsed');
-    }
-  } catch(e) {}
-})();
-
-/* ========================================== */
-/* RIPPLE EFFECT (Material-style)            */
-/* ========================================== */
-document.addEventListener('pointerdown', (e) => {
-  const target = e.target.closest('.ripple');
-  if (!target) return;
-  const rect = target.getBoundingClientRect();
-  const size = Math.max(rect.width, rect.height);
-  const wave = document.createElement('span');
-  wave.className = 'ripple-wave';
-  wave.style.width = wave.style.height = size + 'px';
-  wave.style.left = (e.clientX - rect.left - size / 2) + 'px';
-  wave.style.top = (e.clientY - rect.top - size / 2) + 'px';
-  target.appendChild(wave);
-  // Haptic-like feedback (only on supported devices)
-  if (navigator.vibrate) {
-    try { navigator.vibrate(8); } catch(_) {}
-  }
-  setTimeout(() => wave.remove(), 600);
-});
-
-/* ========================================== */
-/* SKELETON LOADER → CONTENT REVEAL          */
-/* ========================================== */
-function showSkeleton(targetId, durationMs = 900) {
-  const target = document.getElementById(targetId);
-  if (!target) return;
-  
-  // Remember real content
-  const realContent = target.innerHTML;
-  
-  // Build skeleton based on view
-  const isMobile = targetId === 'mobile-content';
-  
-  if (isMobile) {
-    target.innerHTML = `
-      <div class="bg-white px-5 pt-3 pb-4 border-b border-slate-100">
-        <div class="flex items-center justify-between">
-          <div class="space-y-2">
-            <div class="skel h-3 w-20"></div>
-            <div class="skel h-5 w-32"></div>
-          </div>
-          <div class="flex gap-2">
-            <div class="skel w-10 h-10 rounded-full"></div>
-            <div class="skel w-10 h-10 rounded-full"></div>
-          </div>
-        </div>
-      </div>
-      <div class="px-5 py-5 grid grid-cols-2 gap-3">
-        <div class="bg-white rounded-2xl p-4 border border-slate-200 space-y-3">
-          <div class="skel w-10 h-10 rounded-lg"></div>
-          <div class="skel h-8 w-12"></div>
-          <div class="skel h-3 w-20"></div>
-        </div>
-        <div class="bg-white rounded-2xl p-4 border border-slate-200 space-y-3">
-          <div class="skel w-10 h-10 rounded-lg"></div>
-          <div class="skel h-8 w-12"></div>
-          <div class="skel h-3 w-20"></div>
-        </div>
-        <div class="skel rounded-2xl h-32"></div>
-        <div class="skel rounded-2xl h-32"></div>
-      </div>
-      <div class="px-5 mb-4">
-        <div class="bg-white rounded-2xl border border-slate-100 p-4 space-y-3">
-          <div class="skel h-4 w-32"></div>
-          <div class="skel h-12 w-full"></div>
-          <div class="skel h-12 w-full"></div>
-        </div>
-      </div>
-      <div class="px-5 mb-4">
-        <div class="skel rounded-2xl h-40"></div>
-      </div>
-      <div class="px-5 pb-24 space-y-2">
-        <div class="skel h-5 w-32 mb-3"></div>
-        <div class="bg-white rounded-2xl border border-slate-100 p-3 flex items-center gap-3">
-          <div class="skel w-9 h-9 rounded-full"></div>
-          <div class="flex-1 space-y-2">
-            <div class="skel h-3 w-3/4"></div>
-            <div class="skel h-2 w-1/2"></div>
-          </div>
-          <div class="skel h-4 w-12"></div>
-        </div>
-        <div class="bg-white rounded-2xl border border-slate-100 p-3 flex items-center gap-3">
-          <div class="skel w-9 h-9 rounded-full"></div>
-          <div class="flex-1 space-y-2">
-            <div class="skel h-3 w-3/4"></div>
-            <div class="skel h-2 w-1/2"></div>
-          </div>
-          <div class="skel h-4 w-12"></div>
-        </div>
-      </div>
-    `;
-  } else {
-    // Desktop skeleton
-    target.innerHTML = `
-      <header class="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between sticky top-0 z-10">
-        <div class="flex items-center gap-3">
-          <div class="skel w-9 h-9 rounded-lg"></div>
-          <div class="space-y-2">
-            <div class="skel h-5 w-28"></div>
-            <div class="skel h-3 w-40"></div>
-          </div>
-        </div>
-        <div class="flex gap-3">
-          <div class="skel w-72 h-9 rounded-lg"></div>
-          <div class="skel w-9 h-9 rounded-lg"></div>
-        </div>
-      </header>
-      <div class="p-8 space-y-6">
-        <div class="grid grid-cols-4 gap-4">
-          <div class="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
-            <div class="skel w-10 h-10 rounded-lg"></div>
-            <div class="skel h-8 w-12"></div>
-            <div class="skel h-3 w-24"></div>
-          </div>
-          <div class="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
-            <div class="skel w-10 h-10 rounded-lg"></div>
-            <div class="skel h-8 w-12"></div>
-            <div class="skel h-3 w-24"></div>
-          </div>
-          <div class="skel rounded-xl h-32"></div>
-          <div class="skel rounded-xl h-32"></div>
-        </div>
-        <div class="grid grid-cols-3 gap-4">
-          <div class="col-span-2 skel rounded-xl h-64"></div>
-          <div class="skel rounded-xl h-64"></div>
-        </div>
-        <div class="skel rounded-xl h-48"></div>
-      </div>
-    `;
-  }
-  
-  // After duration, fade in real content
-  setTimeout(() => {
-    target.innerHTML = realContent;
-    target.classList.add('fade-in');
+  const sb = document.getElementById('sidebar');
+  if (!sb) return;
+  sb.classList.toggle('collapsed');
+  const icon = document.getElementById('sidebar-toggle-icon');
+  if (icon) {
+    icon.setAttribute('data-lucide', sb.classList.contains('collapsed') ? 'panel-left-open' : 'panel-left-close');
     lucide.createIcons();
-    // Remove fade-in class after animation completes (so it can replay)
-    setTimeout(() => target.classList.remove('fade-in'), 500);
-  }, durationMs);
+  }
 }
 
-// Show skeleton on initial load
-window.addEventListener('DOMContentLoaded', () => {
-  // Detect which view is visible
-  const isMobile = window.innerWidth < 1024;
-  showSkeleton(isMobile ? 'mobile-content' : 'desktop-content', 900);
-});
-
-/* ========================================== */
-/* PULL-TO-REFRESH HINT (visual only)        */
-/* ========================================== */
-let touchStartY = 0;
-const mobileEl = document.getElementById('mobile-content');
-if (mobileEl) {
-  mobileEl.addEventListener('touchstart', (e) => {
-    if (window.scrollY === 0) touchStartY = e.touches[0].clientY;
-  }, { passive: true });
-  mobileEl.addEventListener('touchmove', (e) => {
-    if (window.scrollY > 0) return;
-    const dy = e.touches[0].clientY - touchStartY;
-    if (dy > 60 && !mobileEl._refreshing) {
-      mobileEl._refreshing = true;
-      if (navigator.vibrate) try { navigator.vibrate(15); } catch(_) {}
-      showSkeleton('mobile-content', 800);
-      setTimeout(() => mobileEl._refreshing = false, 1200);
-    }
-  }, { passive: true });
+function countUp(el, target, duration = 1200) {
+  const startTime = performance.now();
+  function update(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(target * eased).toLocaleString();
+    if (progress < 1) requestAnimationFrame(update);
+  }
+  requestAnimationFrame(update);
 }
 
-
-/* ========== SIDE DRAWER ========== */
-function openDrawer() {
-  const drawer = document.getElementById('sideDrawer');
-  if (!drawer) return;
-  drawer.classList.add('show');
-  document.body.classList.add('modal-open');
-  if (navigator.vibrate) try { navigator.vibrate(8); } catch(_) {}
-  setTimeout(() => lucide.createIcons(), 50);
-}
-function closeDrawer() {
-  const drawer = document.getElementById('sideDrawer');
-  if (!drawer) return;
-  drawer.classList.remove('show');
-  document.body.classList.remove('modal-open');
-  if (navigator.vibrate) try { navigator.vibrate(6); } catch(_) {}
-}
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closeDrawer();
-});
-(function() {
-  const drawer = document.getElementById('sideDrawer');
-  if (!drawer) return;
-  const panel = drawer.querySelector('.drawer-panel');
-  let startX = 0, currentX = 0, dragging = false;
-  panel.addEventListener('touchstart', (e) => {
-    if (!drawer.classList.contains('show')) return;
-    startX = e.touches[0].clientX; dragging = true;
-    panel.style.transition = 'none';
-  }, { passive: true });
-  panel.addEventListener('touchmove', (e) => {
-    if (!dragging) return;
-    currentX = e.touches[0].clientX;
-    const dx = currentX - startX;
-    if (dx < 0) panel.style.transform = `translateX(${dx}px)`;
-  }, { passive: true });
-  panel.addEventListener('touchend', () => {
-    if (!dragging) return;
-    dragging = false;
-    panel.style.transition = '';
-    const dx = currentX - startX;
-    if (dx < -80) closeDrawer();
-    else panel.style.transform = '';
+window.addEventListener('load', () => {
+  document.querySelectorAll('[data-countup]').forEach((el, i) => {
+    const target = parseInt(el.dataset.countup);
+    el.textContent = '0';
+    setTimeout(() => countUp(el, target, 1200 + i * 30), 200 + i * 80);
   });
-})();
+});
 
 lucide.createIcons();
 </script>
