@@ -1,0 +1,1880 @@
+<!DOCTYPE html>
+
+<html lang="th">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
+<meta content="#211e53" name="theme-color"/>
+<title>Fleet Manager — รายละเอียดรถ</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@500;700&amp;family=Noto+Sans+Thai:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        brand: {
+          50: '#f4f3f9', 100: '#ebeaf3', 200: '#d2cfe5', 300: '#aaa4cd',
+          400: '#7d75b0', 500: '#5d5494', 600: '#48417a', 700: '#3b3563',
+          800: '#332e54', 900: '#211e53', 950: '#15123a',
+        }
+      },
+      fontFamily: {
+        sans: ['Inter', 'Noto Sans Thai', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
+      }
+    }
+  }
+}
+</script>
+<style>
+body { font-family: 'Inter', 'Noto Sans Thai', sans-serif; }
+.font-mono { font-family: 'JetBrains Mono', monospace; }
+.chip-row::-webkit-scrollbar { display: none; }
+.chip-row { -ms-overflow-style: none; scrollbar-width: none; }
+.safe-bottom { padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); }
+@media (min-width: 1024px) {
+  .mobile-only { display: none !important; }
+}
+@media (max-width: 1023px) {
+  .desktop-only { display: none !important; }
+}
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+.tab-btn-mobile.active { color: #211e53; border-color: #211e53; font-weight: 700; }
+.tab-btn-desktop.active { color: #211e53; border-color: #211e53; font-weight: 700; }
+
+/* Timeline */
+.timeline-line {
+  position: absolute;
+  left: 19px;
+  top: 40px;
+  bottom: -12px;
+  width: 2px;
+  background: #e2e8f0;
+}
+.timeline-item:last-child .timeline-line { display: none; }
+
+/* === Sidebar layout === */
+.sidebar {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: 240px;
+  z-index: 40;
+  transition: transform 0.25s ease;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.main-area {
+  margin-left: 240px;
+  transition: margin-left 0.25s ease;
+  min-height: 100vh;
+}
+/* When hidden: sidebar slides off-screen, content takes full width */
+body.sidebar-collapsed .sidebar {
+  transform: translateX(-100%);
+}
+body.sidebar-collapsed .main-area {
+  margin-left: 0;
+}
+/* Toggle button morphs: 'panel-left' icon stays the same; we just rotate it visually */
+body.sidebar-collapsed .toggle-icon {
+  transform: rotate(180deg);
+}
+.toggle-icon {
+  transition: transform 0.25s ease;
+  display: inline-block;
+}
+
+
+/* === SIDE DRAWER (mobile) === */
+#sideDrawer { visibility: hidden; pointer-events: none; }
+#sideDrawer.show { visibility: visible; pointer-events: auto; }
+#sideDrawer .drawer-backdrop { opacity: 0; transition: opacity 0.3s ease; }
+#sideDrawer.show .drawer-backdrop { opacity: 1; }
+#sideDrawer .drawer-panel {
+  transform: translateX(-100%);
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+#sideDrawer.show .drawer-panel { transform: translateX(0); }
+body.modal-open { overflow: hidden; }
+.ios-modal-shadow {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08), 0 24px 64px -16px rgba(0,0,0,0.20);
+}
+.ios-shadow-2 {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 4px 12px -2px rgba(0,0,0,0.08);
+}
+
+
+/* Bottom nav active dot indicator */
+.nav-item-active { position: relative; }
+.nav-item-active::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #211e53;
+}
+
+/* iOS blur for bottom nav */
+.ios-blur {
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  background-color: rgba(255, 255, 255, 0.85);
+}
+
+/* Tap feedback */
+.tap {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  cursor: pointer;
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.tap:active { transform: scale(0.97); }
+
+/* Ripple effect */
+.ripple { position: relative; overflow: hidden; }
+.ripple-wave {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.4);
+  transform: scale(0);
+  animation: ripple-anim 0.6s ease-out;
+}
+.ripple-dark .ripple-wave { background: rgba(33, 30, 83, 0.15); }
+@keyframes ripple-anim { to { transform: scale(4); opacity: 0; } }
+
+</style>
+</head>
+<body class="bg-slate-50">
+<!-- ============================================================ -->
+<!-- MOBILE VIEW (< 1024px) -->
+<!-- ============================================================ -->
+<div class="mobile-only min-h-screen relative bg-slate-50">
+<!-- Header -->
+<div class="bg-white px-5 pt-3 pb-4 border-b border-slate-100">
+<div class="flex items-center justify-between">
+<button class="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center" onclick="location.href='vehicles.html'">
+<i class="w-5 h-5 text-slate-700" data-lucide="chevron-left"></i>
+</button>
+<div class="flex gap-2">
+<button class="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center"><i class="w-4 h-4 text-slate-700" data-lucide="share-2"></i></button>
+<button class="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center"><i class="w-4 h-4 text-slate-700" data-lucide="more-vertical"></i></button>
+</div>
+</div>
+</div>
+<!-- Vehicle hero -->
+<div class="bg-white px-5 pb-5 border-b border-slate-100">
+<div class="bg-gradient-to-br from-brand-900 to-brand-700 rounded-2xl p-5 text-white relative overflow-hidden mb-4">
+<div class="absolute -right-4 -top-4 w-32 h-32 rounded-full bg-white/5"></div>
+<div class="relative">
+<p class="text-[10px] uppercase tracking-widest text-white/60 font-bold">License Plate</p>
+<h1 class="font-mono font-extrabold text-3xl mt-1">1กข-1234</h1>
+<p class="text-white/80 text-sm mt-1">Toyota Vios · 2023 · สีขาว</p>
+<div class="mt-4 flex items-center gap-2">
+<span class="text-[10px] font-bold bg-emerald-400 text-emerald-950 px-2 py-1 rounded-full">● ใช้งาน</span>
+<span class="text-[10px] font-bold bg-white/20 text-white px-2 py-1 rounded-full">รถส่วนกลาง</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div class="bg-slate-50 rounded-xl p-3">
+<p class="text-[10px] text-slate-500 uppercase font-bold">เลขไมล์</p>
+<p class="font-mono font-bold text-slate-900 text-base mt-1">45,230 km</p>
+</div>
+<div class="bg-slate-50 rounded-xl p-3">
+<p class="text-[10px] text-slate-500 uppercase font-bold">ผู้ใช้ปัจจุบัน</p>
+<p class="font-bold text-slate-900 text-sm mt-1">สมชาย ใจดี</p>
+</div>
+</div>
+</div>
+<!-- Tabs -->
+<div class="bg-white border-b border-slate-100 sticky top-0 z-20 chip-row overflow-x-auto">
+<div class="flex min-w-max">
+<button class="tab-btn-mobile active px-4 py-3 text-sm text-slate-500 border-b-2 border-transparent" data-tab="info">ข้อมูล</button>
+<button class="tab-btn-mobile px-4 py-3 text-sm text-slate-500 border-b-2 border-transparent" data-tab="docs">เอกสาร <span class="ml-1 text-[10px] bg-red-500 text-white px-1.5 rounded-full font-bold">1</span></button>
+<button class="tab-btn-mobile px-4 py-3 text-sm text-slate-500 border-b-2 border-transparent" data-tab="repairs">ซ่อมบำรุง</button>
+<button class="tab-btn-mobile px-4 py-3 text-sm text-slate-500 border-b-2 border-transparent" data-tab="expenses">ค่าใช้จ่าย</button>
+<button class="tab-btn-mobile px-4 py-3 text-sm text-slate-500 border-b-2 border-transparent" data-tab="users">ผู้ใช้รถ</button>
+<button class="tab-btn-mobile px-4 py-3 text-sm text-slate-500 border-b-2 border-transparent" data-tab="photos">รูปภาพ <span class="ml-1 text-[10px] bg-slate-200 text-slate-700 px-1.5 rounded-full font-bold font-mono">12</span></button>
+</div>
+</div>
+<!-- ====== TAB: ข้อมูล (Info) ====== -->
+<div class="tab-panel active" data-tab-panel="info">
+<div class="px-5 py-4 space-y-3 pb-24">
+<div class="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3">
+<div class="w-9 h-9 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0"><i class="w-4 h-4 text-red-700" data-lucide="alert-triangle"></i></div>
+<div class="flex-1">
+<p class="font-bold text-sm text-red-900">พ.ร.บ. ใกล้หมดอายุ</p>
+<p class="text-xs text-red-700 mt-0.5">หมดอายุวันที่ 11 พ.ค. 2569 (อีก 7 วัน)</p>
+</div>
+<button class="text-xs font-bold bg-red-600 text-white px-3 py-1.5 rounded-lg">ต่ออายุ</button>
+</div>
+<div class="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-100">
+<div class="p-3 flex items-center justify-between"><span class="text-xs text-slate-500">ยี่ห้อ</span><span class="text-sm font-semibold text-slate-900">Toyota</span></div>
+<div class="p-3 flex items-center justify-between"><span class="text-xs text-slate-500">รุ่น</span><span class="text-sm font-semibold text-slate-900">Vios 1.5 G</span></div>
+<div class="p-3 flex items-center justify-between"><span class="text-xs text-slate-500">ปี</span><span class="text-sm font-semibold text-slate-900 font-mono">2023</span></div>
+<div class="p-3 flex items-center justify-between"><span class="text-xs text-slate-500">สี</span><span class="text-sm font-semibold text-slate-900">ขาว</span></div>
+<div class="p-3 flex items-center justify-between"><span class="text-xs text-slate-500">เลขเครื่อง</span><span class="text-xs font-mono text-slate-700">2NR-FE-12345</span></div>
+<div class="p-3 flex items-center justify-between"><span class="text-xs text-slate-500">เลขตัวถัง</span><span class="text-xs font-mono text-slate-700">MR053KE301X</span></div>
+<div class="p-3 flex items-center justify-between"><span class="text-xs text-slate-500">น้ำมัน</span><span class="text-sm font-semibold text-slate-900">เบนซิน 95</span></div>
+</div>
+<div class="grid grid-cols-3 gap-2">
+<button class="bg-white border border-slate-200 rounded-xl p-3 flex flex-col items-center gap-1.5">
+<div class="w-9 h-9 bg-emerald-100 rounded-full flex items-center justify-center"><i class="w-4 h-4 text-emerald-700" data-lucide="fuel"></i></div>
+<span class="text-[10px] font-semibold text-slate-700">เติมน้ำมัน</span>
+</button>
+<button class="bg-white border border-slate-200 rounded-xl p-3 flex flex-col items-center gap-1.5">
+<div class="w-9 h-9 bg-amber-100 rounded-full flex items-center justify-center"><i class="w-4 h-4 text-amber-700" data-lucide="wrench"></i></div>
+<span class="text-[10px] font-semibold text-slate-700">บันทึกซ่อม</span>
+</button>
+<button class="bg-white border border-slate-200 rounded-xl p-3 flex flex-col items-center gap-1.5">
+<div class="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center"><i class="w-4 h-4 text-blue-700" data-lucide="user-check"></i></div>
+<span class="text-[10px] font-semibold text-slate-700">เปลี่ยนผู้ใช้</span>
+</button>
+</div>
+</div>
+</div>
+<!-- ====== TAB: เอกสาร (Documents) ====== -->
+<div class="tab-panel" data-tab-panel="docs">
+<div class="px-5 py-4 space-y-3 pb-24">
+<!-- Summary -->
+<div class="bg-white rounded-2xl border border-slate-100 p-4">
+<div class="flex items-center justify-between mb-3">
+<h3 class="text-sm font-bold text-slate-900">สรุปเอกสาร</h3>
+<button class="text-xs font-bold text-brand-900">+ เพิ่มเอกสาร</button>
+</div>
+<div class="grid grid-cols-3 gap-2 text-center">
+<div class="bg-emerald-50 rounded-lg p-2">
+<p class="text-xl font-extrabold text-emerald-700 font-mono">3</p>
+<p class="text-[10px] text-emerald-700 font-semibold">ปกติ</p>
+</div>
+<div class="bg-amber-50 rounded-lg p-2">
+<p class="text-xl font-extrabold text-amber-700 font-mono">0</p>
+<p class="text-[10px] text-amber-700 font-semibold">ใกล้หมด</p>
+</div>
+<div class="bg-red-50 rounded-lg p-2">
+<p class="text-xl font-extrabold text-red-700 font-mono">1</p>
+<p class="text-[10px] text-red-700 font-semibold">เร่งด่วน</p>
+</div>
+</div>
+</div>
+<!-- Documents -->
+<!-- พ.ร.บ. (urgent) -->
+<div class="bg-white rounded-2xl border-2 border-red-200 overflow-hidden">
+<div class="bg-red-50 px-4 py-2 flex items-center gap-2">
+<i class="w-4 h-4 text-red-600" data-lucide="alert-triangle"></i>
+<span class="text-xs font-bold text-red-900">เร่งด่วน · เหลืออีก 7 วัน</span>
+</div>
+<div class="p-4">
+<div class="flex items-start gap-3 mb-3">
+<div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
+<i class="w-5 h-5 text-red-700" data-lucide="shield-check"></i>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="text-sm font-bold text-slate-900">พ.ร.บ. คุ้มครองผู้ประสบภัย</h4>
+<p class="text-[11px] text-slate-500 mt-0.5">บริษัท วิริยะประกันภัย</p>
+</div>
+</div>
+<div class="bg-slate-50 rounded-lg p-3 space-y-1.5">
+<div class="flex items-center justify-between text-xs">
+<span class="text-slate-500">เลขที่กรมธรรม์</span>
+<span class="font-mono font-semibold text-slate-900">VR-2568-001234</span>
+</div>
+<div class="flex items-center justify-between text-xs">
+<span class="text-slate-500">วันคุ้มครอง</span>
+<span class="font-mono font-semibold text-slate-900">12/05/68 - 11/05/69</span>
+</div>
+<div class="flex items-center justify-between text-xs">
+<span class="text-slate-500">ค่าเบี้ย</span>
+<span class="font-mono font-bold text-slate-900">฿645</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-2 mt-3">
+<button class="py-2.5 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5"><i class="w-3.5 h-3.5" data-lucide="eye"></i>ดูเอกสาร</button>
+<button class="py-2.5 bg-red-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5"><i class="w-3.5 h-3.5" data-lucide="refresh-cw"></i>ต่ออายุเลย</button>
+</div>
+</div>
+</div>
+<!-- ภาษีรถยนต์ -->
+<div class="bg-white rounded-2xl border border-slate-100 p-4">
+<div class="flex items-start gap-3 mb-3">
+<div class="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
+<i class="w-5 h-5 text-emerald-700" data-lucide="receipt"></i>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-2">
+<h4 class="text-sm font-bold text-slate-900">ภาษีรถยนต์</h4>
+<span class="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">ปกติ</span>
+</div>
+<p class="text-[11px] text-emerald-600 font-semibold mt-0.5">เหลืออีก 187 วัน</p>
+</div>
+</div>
+<div class="bg-slate-50 rounded-lg p-3 space-y-1.5">
+<div class="flex items-center justify-between text-xs">
+<span class="text-slate-500">หมดอายุ</span>
+<span class="font-mono font-semibold text-slate-900">11/11/2569</span>
+</div>
+<div class="flex items-center justify-between text-xs">
+<span class="text-slate-500">ค่าธรรมเนียม</span>
+<span class="font-mono font-bold text-slate-900">฿1,420</span>
+</div>
+</div>
+<button class="w-full mt-3 py-2.5 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5"><i class="w-3.5 h-3.5" data-lucide="eye"></i>ดูเอกสาร</button>
+</div>
+<!-- ประกันภัย -->
+<div class="bg-white rounded-2xl border border-slate-100 p-4">
+<div class="flex items-start gap-3 mb-3">
+<div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+<i class="w-5 h-5 text-blue-700" data-lucide="shield"></i>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-2">
+<h4 class="text-sm font-bold text-slate-900">ประกันภัยชั้น 1</h4>
+<span class="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">ปกติ</span>
+</div>
+<p class="text-[11px] text-emerald-600 font-semibold mt-0.5">เหลืออีก 245 วัน</p>
+</div>
+</div>
+<div class="bg-slate-50 rounded-lg p-3 space-y-1.5">
+<div class="flex items-center justify-between text-xs">
+<span class="text-slate-500">บริษัท</span>
+<span class="font-semibold text-slate-900">เมืองไทยประกันภัย</span>
+</div>
+<div class="flex items-center justify-between text-xs">
+<span class="text-slate-500">หมดอายุ</span>
+<span class="font-mono font-semibold text-slate-900">06/01/2570</span>
+</div>
+<div class="flex items-center justify-between text-xs">
+<span class="text-slate-500">ทุนประกัน</span>
+<span class="font-mono font-bold text-slate-900">฿500,000</span>
+</div>
+</div>
+<button class="w-full mt-3 py-2.5 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5"><i class="w-3.5 h-3.5" data-lucide="eye"></i>ดูเอกสาร</button>
+</div>
+<!-- ทะเบียนรถ -->
+<div class="bg-white rounded-2xl border border-slate-100 p-4">
+<div class="flex items-start gap-3 mb-3">
+<div class="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
+<i class="w-5 h-5 text-slate-600" data-lucide="file-text"></i>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="text-sm font-bold text-slate-900">เล่มทะเบียนรถ</h4>
+<p class="text-[11px] text-slate-500 mt-0.5">เอกสารถาวร</p>
+</div>
+</div>
+<div class="bg-slate-50 rounded-lg p-3 flex items-center gap-2">
+<i class="w-4 h-4 text-slate-500" data-lucide="file"></i>
+<span class="text-xs font-mono text-slate-700 flex-1">tabian_1234.pdf</span>
+<span class="text-[10px] text-slate-400">2.4 MB</span>
+</div>
+<button class="w-full mt-3 py-2.5 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5"><i class="w-3.5 h-3.5" data-lucide="download"></i>ดาวน์โหลด</button>
+</div>
+</div>
+</div>
+<!-- ====== TAB: ซ่อมบำรุง (Repairs) ====== -->
+<div class="tab-panel" data-tab-panel="repairs">
+<div class="px-5 py-4 space-y-3 pb-24">
+<!-- Stats -->
+<div class="bg-brand-900 rounded-2xl p-5 text-white relative overflow-hidden">
+<div class="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-white/5"></div>
+<p class="text-[10px] uppercase tracking-widest text-white/60 font-bold">ซ่อมบำรุงทั้งหมด</p>
+<p class="text-3xl font-extrabold font-mono mt-1">฿9,250</p>
+<p class="text-xs text-white/60 mt-1">8 ครั้ง · ตลอดการใช้งาน</p>
+<div class="mt-4 pt-4 border-t border-white/20 grid grid-cols-2 gap-2">
+<div>
+<p class="text-[10px] text-white/60">ซ่อมล่าสุด</p>
+<p class="text-sm font-bold mt-1">15 วันที่แล้ว</p>
+</div>
+<div>
+<p class="text-[10px] text-white/60">ครั้งหน้า</p>
+<p class="text-sm font-bold mt-1">~ 2,500 km</p>
+</div>
+</div>
+</div>
+<!-- Upcoming maintenance -->
+<div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+<div class="w-9 h-9 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+<i class="w-4 h-4 text-amber-700" data-lucide="clock"></i>
+</div>
+<div class="flex-1">
+<p class="text-sm font-bold text-amber-900">ครบกำหนดเปลี่ยนน้ำมันเครื่อง</p>
+<p class="text-xs text-amber-800 mt-0.5">เปลี่ยนทุก 10,000 km · ปัจจุบัน 47,730 km</p>
+</div>
+</div>
+<!-- Add button -->
+<button class="w-full bg-white border-2 border-dashed border-slate-300 rounded-2xl py-3 text-sm font-bold text-slate-700 flex items-center justify-center gap-2">
+<i class="w-4 h-4" data-lucide="plus"></i>บันทึกการซ่อมใหม่
+      </button>
+<!-- Timeline -->
+<h3 class="text-sm font-bold text-slate-900 pt-2">ประวัติการซ่อมบำรุง</h3>
+<div class="bg-white rounded-2xl border border-slate-100 p-4 space-y-4">
+<!-- Item 1 -->
+<div class="timeline-item relative pl-12">
+<div class="absolute left-0 top-0 w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+<i class="w-5 h-5 text-amber-700" data-lucide="wrench"></i>
+</div>
+<div class="timeline-line"></div>
+<div class="flex items-start justify-between gap-2">
+<div>
+<p class="text-sm font-bold text-slate-900">เปลี่ยนน้ำมันเครื่อง + ไส้กรอง</p>
+<p class="text-[11px] text-slate-500 mt-0.5">19 เม.ย. 2569 · 45,000 km</p>
+</div>
+<span class="text-sm font-mono font-bold text-slate-900">฿2,850</span>
+</div>
+<p class="text-xs text-slate-600 mt-1.5 leading-relaxed">น้ำมันเครื่อง Castrol GTX 5W-30 + ไส้กรองอากาศ + ไส้กรองน้ำมัน</p>
+<p class="text-[11px] text-slate-400 mt-1">ที่: ศูนย์บริการ Toyota บางนา · โดย: ประสิทธิ์</p>
+</div>
+<!-- Item 2 -->
+<div class="timeline-item relative pl-12">
+<div class="absolute left-0 top-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+<i class="w-5 h-5 text-blue-700" data-lucide="circle-dot"></i>
+</div>
+<div class="timeline-line"></div>
+<div class="flex items-start justify-between gap-2">
+<div>
+<p class="text-sm font-bold text-slate-900">เช็กระยะ 40,000 km</p>
+<p class="text-[11px] text-slate-500 mt-0.5">2 มี.ค. 2569 · 40,150 km</p>
+</div>
+<span class="text-sm font-mono font-bold text-slate-900">฿3,500</span>
+</div>
+<p class="text-xs text-slate-600 mt-1.5 leading-relaxed">เช็กระบบเบรก, ช่วงล่าง, น้ำหล่อเย็น · เปลี่ยนน้ำมันเบรก</p>
+<p class="text-[11px] text-slate-400 mt-1">ที่: ศูนย์บริการ Toyota บางนา · โดย: ประสิทธิ์</p>
+</div>
+<!-- Item 3 -->
+<div class="timeline-item relative pl-12">
+<div class="absolute left-0 top-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+<i class="w-5 h-5 text-red-700" data-lucide="alert-circle"></i>
+</div>
+<div class="timeline-line"></div>
+<div class="flex items-start justify-between gap-2">
+<div>
+<p class="text-sm font-bold text-slate-900">เปลี่ยนยางหน้า 2 เส้น</p>
+<p class="text-[11px] text-slate-500 mt-0.5">14 ม.ค. 2569 · 38,200 km</p>
+</div>
+<span class="text-sm font-mono font-bold text-slate-900">฿4,800</span>
+</div>
+<p class="text-xs text-slate-600 mt-1.5 leading-relaxed">ยาง Bridgestone Turanza T005 · 185/55 R16 · พร้อมตั้งศูนย์ถ่วงล้อ</p>
+<p class="text-[11px] text-slate-400 mt-1">ที่: B-Quik สาขาพระราม 9 · โดย: สมชาย</p>
+</div>
+<!-- Item 4 (last - no line) -->
+<div class="timeline-item relative pl-12">
+<div class="absolute left-0 top-0 w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+<i class="w-5 h-5 text-emerald-700" data-lucide="check"></i>
+</div>
+<div class="timeline-line"></div>
+<div class="flex items-start justify-between gap-2">
+<div>
+<p class="text-sm font-bold text-slate-900">เปลี่ยนน้ำมันเครื่อง</p>
+<p class="text-[11px] text-slate-500 mt-0.5">8 ต.ค. 2568 · 35,000 km</p>
+</div>
+<span class="text-sm font-mono font-bold text-slate-900">฿2,650</span>
+</div>
+<p class="text-[11px] text-slate-400 mt-1">ที่: ศูนย์บริการ Toyota · โดย: ประสิทธิ์</p>
+</div>
+</div>
+</div>
+</div>
+<!-- ====== TAB: ค่าใช้จ่าย (Expenses) ====== -->
+<div class="tab-panel" data-tab-panel="expenses">
+<div class="px-5 py-4 space-y-3 pb-24">
+<!-- Filter -->
+<div class="flex items-center justify-between bg-white rounded-xl p-1 border border-slate-100">
+<button class="w-9 h-9 flex items-center justify-center"><i class="w-4 h-4 text-slate-600" data-lucide="chevron-left"></i></button>
+<span class="text-sm font-bold text-slate-900">พฤษภาคม 2569</span>
+<button class="w-9 h-9 flex items-center justify-center"><i class="w-4 h-4 text-slate-600" data-lucide="chevron-right"></i></button>
+</div>
+<!-- Summary card -->
+<div class="bg-brand-900 rounded-2xl p-5 text-white relative overflow-hidden">
+<div class="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/5"></div>
+<p class="text-[10px] uppercase tracking-widest text-white/60 font-bold">ค่าใช้จ่ายเดือนนี้ · 1กข-1234</p>
+<p class="text-3xl font-extrabold font-mono mt-2">฿4,720</p>
+<p class="text-xs text-emerald-300 mt-1 font-semibold">↓ 8% จากเดือนก่อน</p>
+<div class="mt-4 space-y-2">
+<div>
+<div class="flex items-center justify-between text-[11px] mb-1">
+<span class="text-white/80 flex items-center gap-1.5"><i class="w-3 h-3" data-lucide="fuel"></i>น้ำมัน</span>
+<span class="font-mono font-bold">฿3,600</span>
+</div>
+<div class="h-1.5 bg-white/10 rounded-full overflow-hidden"><div class="h-full bg-white rounded-full" style="width:76%"></div></div>
+</div>
+<div>
+<div class="flex items-center justify-between text-[11px] mb-1">
+<span class="text-white/80 flex items-center gap-1.5"><i class="w-3 h-3" data-lucide="wrench"></i>ซ่อม</span>
+<span class="font-mono font-bold">฿850</span>
+</div>
+<div class="h-1.5 bg-white/10 rounded-full overflow-hidden"><div class="h-full bg-white rounded-full" style="width:18%"></div></div>
+</div>
+<div>
+<div class="flex items-center justify-between text-[11px] mb-1">
+<span class="text-white/80 flex items-center gap-1.5"><i class="w-3 h-3" data-lucide="more-horizontal"></i>อื่นๆ</span>
+<span class="font-mono font-bold">฿270</span>
+</div>
+<div class="h-1.5 bg-white/10 rounded-full overflow-hidden"><div class="h-full bg-white rounded-full" style="width:6%"></div></div>
+</div>
+</div>
+</div>
+<!-- Total summary -->
+<div class="grid grid-cols-2 gap-2">
+<div class="bg-white rounded-2xl p-4 border border-slate-100">
+<p class="text-[10px] text-slate-500 uppercase font-bold">ตลอดการใช้งาน</p>
+<p class="text-xl font-extrabold text-slate-900 font-mono mt-1">฿42,850</p>
+<p class="text-[10px] text-slate-500 mt-0.5">28 รายการ</p>
+</div>
+<div class="bg-white rounded-2xl p-4 border border-slate-100">
+<p class="text-[10px] text-slate-500 uppercase font-bold">ค่าเฉลี่ย/เดือน</p>
+<p class="text-xl font-extrabold text-slate-900 font-mono mt-1">฿5,135</p>
+<p class="text-[10px] text-slate-500 mt-0.5">ใน 8 เดือน</p>
+</div>
+</div>
+<!-- Recent items -->
+<div>
+<div class="flex items-center justify-between mb-3 pt-2">
+<h3 class="text-sm font-bold text-slate-900">รายการในเดือนนี้</h3>
+<button class="text-xs font-bold text-brand-900">+ เพิ่ม</button>
+</div>
+<div class="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-100">
+<div class="p-3 flex items-center gap-3">
+<div class="w-9 h-9 bg-emerald-100 rounded-full flex items-center justify-center"><i class="w-4 h-4 text-emerald-700" data-lucide="fuel"></i></div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-semibold text-slate-900">เติมน้ำมัน · 30 ลิตร</p>
+<p class="text-[11px] text-slate-500">04/05 08:30 · สมชาย</p>
+</div>
+<span class="text-sm font-bold text-slate-900 font-mono">฿1,200</span>
+</div>
+<div class="p-3 flex items-center gap-3">
+<div class="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center"><i class="w-4 h-4 text-blue-700" data-lucide="parking-circle"></i></div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-semibold text-slate-900">ค่าจอดรถ</p>
+<p class="text-[11px] text-slate-500">02/05 14:15 · สมชาย</p>
+</div>
+<span class="text-sm font-bold text-slate-900 font-mono">฿80</span>
+</div>
+<div class="p-3 flex items-center gap-3">
+<div class="w-9 h-9 bg-emerald-100 rounded-full flex items-center justify-center"><i class="w-4 h-4 text-emerald-700" data-lucide="fuel"></i></div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-semibold text-slate-900">เติมน้ำมัน · 28 ลิตร</p>
+<p class="text-[11px] text-slate-500">28/04 17:50 · สมชาย</p>
+</div>
+<span class="text-sm font-bold text-slate-900 font-mono">฿1,120</span>
+</div>
+<div class="p-3 flex items-center gap-3">
+<div class="w-9 h-9 bg-purple-100 rounded-full flex items-center justify-center"><i class="w-4 h-4 text-purple-700" data-lucide="route"></i></div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-semibold text-slate-900">ค่าทางด่วน</p>
+<p class="text-[11px] text-slate-500">25/04 09:10 · สมชาย</p>
+</div>
+<span class="text-sm font-bold text-slate-900 font-mono">฿85</span>
+</div>
+<div class="p-3 flex items-center gap-3">
+<div class="w-9 h-9 bg-amber-100 rounded-full flex items-center justify-center"><i class="w-4 h-4 text-amber-700" data-lucide="wrench"></i></div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-semibold text-slate-900">เปลี่ยนใบปัดน้ำฝน</p>
+<p class="text-[11px] text-slate-500">20/04 11:30 · ประสิทธิ์</p>
+</div>
+<span class="text-sm font-bold text-slate-900 font-mono">฿850</span>
+</div>
+<div class="p-3 flex items-center gap-3">
+<div class="w-9 h-9 bg-emerald-100 rounded-full flex items-center justify-center"><i class="w-4 h-4 text-emerald-700" data-lucide="fuel"></i></div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-semibold text-slate-900">เติมน้ำมัน · 32 ลิตร</p>
+<p class="text-[11px] text-slate-500">15/04 18:30 · สมชาย</p>
+</div>
+<span class="text-sm font-bold text-slate-900 font-mono">฿1,280</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- ====== TAB: ผู้ใช้รถ (Users) ====== -->
+<div class="tab-panel" data-tab-panel="users">
+<div class="px-5 py-4 space-y-3 pb-24">
+<!-- Current user -->
+<div class="bg-white rounded-2xl border-2 border-brand-900 p-4">
+<div class="flex items-center gap-2 mb-3">
+<span class="text-[10px] font-bold bg-brand-900 text-white px-2 py-0.5 rounded-full uppercase tracking-wider">ผู้ใช้ปัจจุบัน</span>
+<span class="text-[10px] text-emerald-600 font-bold flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>ออนไลน์</span>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-14 h-14 bg-brand-900 rounded-full flex items-center justify-center text-white font-bold">SC</div>
+<div class="flex-1 min-w-0">
+<h3 class="text-base font-bold text-slate-900">สมชาย ใจดี</h3>
+<p class="text-xs text-slate-500">ฝ่ายขาย · ID 1024</p>
+<p class="text-[11px] text-slate-400 mt-0.5">เริ่มใช้: 1 ม.ค. 2569 · 124 วันที่แล้ว</p>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-slate-100 text-center">
+<div>
+<p class="text-base font-extrabold text-slate-900 font-mono">1,250</p>
+<p class="text-[10px] text-slate-500">km เดือนนี้</p>
+</div>
+<div>
+<p class="text-base font-extrabold text-slate-900 font-mono">฿4,720</p>
+<p class="text-[10px] text-slate-500">ค่าใช้จ่าย</p>
+</div>
+<div>
+<p class="text-base font-extrabold text-slate-900 font-mono">12</p>
+<p class="text-[10px] text-slate-500">รายการ</p>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-2 mt-4">
+<button class="py-2.5 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5"><i class="w-3.5 h-3.5" data-lucide="phone"></i>ติดต่อ</button>
+<button class="py-2.5 bg-brand-900 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5"><i class="w-3.5 h-3.5" data-lucide="user-check"></i>เปลี่ยนผู้ใช้</button>
+</div>
+</div>
+<!-- History -->
+<h3 class="text-sm font-bold text-slate-900 pt-2">ประวัติผู้ใช้รถ</h3>
+<div class="bg-white rounded-2xl border border-slate-100 p-4 space-y-4">
+<!-- Current -->
+<div class="timeline-item relative pl-12">
+<div class="absolute left-0 top-0 w-10 h-10 bg-brand-900 rounded-full flex items-center justify-center text-white font-bold text-xs">SC</div>
+<div class="timeline-line"></div>
+<div class="flex items-start justify-between gap-2">
+<div>
+<p class="text-sm font-bold text-slate-900">สมชาย ใจดี</p>
+<p class="text-[11px] text-slate-500">ฝ่ายขาย</p>
+</div>
+<span class="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">ปัจจุบัน</span>
+</div>
+<p class="text-xs text-slate-600 mt-1">ตั้งแต่ 1 ม.ค. 2569 · 124 วัน</p>
+</div>
+<!-- Previous -->
+<div class="timeline-item relative pl-12">
+<div class="absolute left-0 top-0 w-10 h-10 bg-amber-600 rounded-full flex items-center justify-center text-white font-bold text-xs">วภ</div>
+<div class="timeline-line"></div>
+<div class="flex items-start justify-between gap-2">
+<div>
+<p class="text-sm font-bold text-slate-900">วิภา พงษ์</p>
+<p class="text-[11px] text-slate-500">ฝ่ายขนส่ง</p>
+</div>
+<span class="text-[10px] text-slate-400 font-mono">1 ก.ย. 68 - 31 ธ.ค. 68</span>
+</div>
+<p class="text-xs text-slate-600 mt-1">ใช้งาน 122 วัน · 8,500 km</p>
+</div>
+<!-- Earlier -->
+<div class="timeline-item relative pl-12">
+<div class="absolute left-0 top-0 w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xs">นพ</div>
+<div class="timeline-line"></div>
+<div class="flex items-start justify-between gap-2">
+<div>
+<p class="text-sm font-bold text-slate-900">นพดล ก.</p>
+<p class="text-[11px] text-slate-500">ฝ่ายบัญชี</p>
+</div>
+<span class="text-[10px] text-slate-400 font-mono">15 ม.ค. 67 - 31 ส.ค. 68</span>
+</div>
+<p class="text-xs text-slate-600 mt-1">ใช้งาน 1 ปี 7 เดือน · 32,500 km</p>
+</div>
+<!-- First -->
+<div class="timeline-item relative pl-12">
+<div class="absolute left-0 top-0 w-10 h-10 bg-slate-400 rounded-full flex items-center justify-center">
+<i class="w-5 h-5 text-white" data-lucide="flag"></i>
+</div>
+<div class="timeline-line"></div>
+<div class="flex items-start justify-between gap-2">
+<div>
+<p class="text-sm font-bold text-slate-900">เริ่มลงทะเบียน</p>
+<p class="text-[11px] text-slate-500">ซื้อใหม่ · 0 km</p>
+</div>
+<span class="text-[10px] text-slate-400 font-mono">15 ม.ค. 2566</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- ====== TAB: รูปภาพ (Photos) ====== -->
+<div class="tab-panel" data-tab-panel="photos">
+<div class="px-5 py-4 space-y-4 pb-24">
+<!-- Stats + upload -->
+<div class="bg-white rounded-2xl border border-slate-100 p-4">
+<div class="flex items-center justify-between mb-3">
+<h3 class="text-sm font-bold text-slate-900">คลังรูปภาพ</h3>
+<span class="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-mono">12 รูป</span>
+</div>
+<div class="grid grid-cols-3 gap-2 text-center">
+<div class="bg-blue-50 rounded-lg p-2">
+<p class="text-lg font-extrabold text-blue-700 font-mono">5</p>
+<p class="text-[10px] text-blue-700 font-semibold">รถ</p>
+</div>
+<div class="bg-purple-50 rounded-lg p-2">
+<p class="text-lg font-extrabold text-purple-700 font-mono">4</p>
+<p class="text-[10px] text-purple-700 font-semibold">เอกสาร</p>
+</div>
+<div class="bg-amber-50 rounded-lg p-2">
+<p class="text-lg font-extrabold text-amber-700 font-mono">3</p>
+<p class="text-[10px] text-amber-700 font-semibold">ซ่อม</p>
+</div>
+</div>
+</div>
+<!-- Upload button -->
+<button class="w-full bg-white border-2 border-dashed border-slate-300 rounded-2xl py-4 text-sm font-bold text-slate-700 flex items-center justify-center gap-2">
+<i class="w-4 h-4" data-lucide="camera"></i>ถ่ายรูป / อัปโหลด
+      </button>
+<!-- Filter chips -->
+<div class="chip-row overflow-x-auto -mx-5 px-5">
+<div class="flex gap-2 min-w-max">
+<button class="px-3.5 py-1.5 rounded-full bg-brand-900 text-white text-xs font-bold whitespace-nowrap">ทั้งหมด · 12</button>
+<button class="px-3.5 py-1.5 rounded-full bg-slate-100 text-slate-700 text-xs font-medium whitespace-nowrap">ภายนอก · 3</button>
+<button class="px-3.5 py-1.5 rounded-full bg-slate-100 text-slate-700 text-xs font-medium whitespace-nowrap">ภายใน · 2</button>
+<button class="px-3.5 py-1.5 rounded-full bg-slate-100 text-slate-700 text-xs font-medium whitespace-nowrap">เอกสาร · 4</button>
+<button class="px-3.5 py-1.5 rounded-full bg-slate-100 text-slate-700 text-xs font-medium whitespace-nowrap">ซ่อม · 3</button>
+</div>
+</div>
+<!-- Section: ภายนอกรถ -->
+<div>
+<div class="flex items-center justify-between mb-2">
+<h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">ภายนอกรถ</h3>
+<span class="text-[10px] text-slate-400 font-mono">3 รูป</span>
+</div>
+<div class="grid grid-cols-3 gap-2">
+<!-- Photo 1: Front -->
+<div class="aspect-square rounded-xl bg-gradient-to-br from-slate-200 to-slate-300 relative overflow-hidden">
+<div class="absolute inset-0 flex items-center justify-center">
+<i class="w-10 h-10 text-slate-400" data-lucide="car-front"></i>
+</div>
+<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+<p class="text-[10px] text-white font-semibold">หน้ารถ</p>
+</div>
+</div>
+<!-- Photo 2: Side -->
+<div class="aspect-square rounded-xl bg-gradient-to-br from-slate-300 to-slate-400 relative overflow-hidden">
+<div class="absolute inset-0 flex items-center justify-center">
+<i class="w-10 h-10 text-slate-500" data-lucide="car"></i>
+</div>
+<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+<p class="text-[10px] text-white font-semibold">ด้านข้าง</p>
+</div>
+</div>
+<!-- Photo 3: Rear -->
+<div class="aspect-square rounded-xl bg-gradient-to-br from-slate-200 to-slate-400 relative overflow-hidden">
+<div class="absolute inset-0 flex items-center justify-center">
+<i class="w-10 h-10 text-slate-400 rotate-180" data-lucide="car"></i>
+</div>
+<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+<p class="text-[10px] text-white font-semibold">หลังรถ</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Section: ภายในรถ -->
+<div>
+<div class="flex items-center justify-between mb-2">
+<h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">ภายในรถ</h3>
+<span class="text-[10px] text-slate-400 font-mono">2 รูป</span>
+</div>
+<div class="grid grid-cols-3 gap-2">
+<div class="aspect-square rounded-xl bg-gradient-to-br from-stone-200 to-stone-400 relative overflow-hidden">
+<div class="absolute inset-0 flex items-center justify-center">
+<i class="w-10 h-10 text-stone-500" data-lucide="armchair"></i>
+</div>
+<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+<p class="text-[10px] text-white font-semibold">เบาะ</p>
+</div>
+</div>
+<div class="aspect-square rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 relative overflow-hidden">
+<div class="absolute inset-0 flex items-center justify-center">
+<i class="w-10 h-10 text-slate-300" data-lucide="gauge"></i>
+</div>
+<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+<p class="text-[10px] text-white font-semibold">แดชบอร์ด</p>
+</div>
+</div>
+<button class="aspect-square rounded-xl bg-slate-50 border-2 border-dashed border-slate-300 flex flex-col items-center justify-center gap-1">
+<i class="w-5 h-5 text-slate-400" data-lucide="plus"></i>
+<span class="text-[10px] text-slate-500 font-semibold">เพิ่ม</span>
+</button>
+</div>
+</div>
+<!-- Section: เอกสาร -->
+<div>
+<div class="flex items-center justify-between mb-2">
+<h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">เอกสาร</h3>
+<span class="text-[10px] text-slate-400 font-mono">4 รูป</span>
+</div>
+<div class="grid grid-cols-3 gap-2">
+<div class="aspect-square rounded-xl bg-gradient-to-br from-blue-100 to-blue-300 relative overflow-hidden">
+<div class="absolute inset-0 flex items-center justify-center">
+<i class="w-10 h-10 text-blue-700" data-lucide="shield-check"></i>
+</div>
+<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+<p class="text-[10px] text-white font-semibold">พ.ร.บ.</p>
+</div>
+</div>
+<div class="aspect-square rounded-xl bg-gradient-to-br from-emerald-100 to-emerald-300 relative overflow-hidden">
+<div class="absolute inset-0 flex items-center justify-center">
+<i class="w-10 h-10 text-emerald-700" data-lucide="receipt"></i>
+</div>
+<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+<p class="text-[10px] text-white font-semibold">ใบภาษี</p>
+</div>
+</div>
+<div class="aspect-square rounded-xl bg-gradient-to-br from-purple-100 to-purple-300 relative overflow-hidden">
+<div class="absolute inset-0 flex items-center justify-center">
+<i class="w-10 h-10 text-purple-700" data-lucide="file-text"></i>
+</div>
+<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+<p class="text-[10px] text-white font-semibold">ทะเบียน</p>
+</div>
+</div>
+<div class="aspect-square rounded-xl bg-gradient-to-br from-blue-100 to-indigo-300 relative overflow-hidden">
+<div class="absolute inset-0 flex items-center justify-center">
+<i class="w-10 h-10 text-indigo-700" data-lucide="shield"></i>
+</div>
+<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+<p class="text-[10px] text-white font-semibold">ประกัน</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Section: ซ่อมบำรุง -->
+<div>
+<div class="flex items-center justify-between mb-2">
+<h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">ซ่อมบำรุง</h3>
+<span class="text-[10px] text-slate-400 font-mono">3 รูป</span>
+</div>
+<div class="grid grid-cols-3 gap-2">
+<div class="aspect-square rounded-xl bg-gradient-to-br from-amber-100 to-amber-300 relative overflow-hidden">
+<div class="absolute inset-0 flex items-center justify-center">
+<i class="w-10 h-10 text-amber-700" data-lucide="wrench"></i>
+</div>
+<div class="absolute top-2 left-2">
+<span class="text-[9px] font-bold bg-white/90 text-slate-700 px-1.5 py-0.5 rounded font-mono">19/04</span>
+</div>
+<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+<p class="text-[10px] text-white font-semibold">น้ำมันเครื่อง</p>
+</div>
+</div>
+<div class="aspect-square rounded-xl bg-gradient-to-br from-red-100 to-red-300 relative overflow-hidden">
+<div class="absolute inset-0 flex items-center justify-center">
+<i class="w-10 h-10 text-red-700" data-lucide="circle-dot"></i>
+</div>
+<div class="absolute top-2 left-2">
+<span class="text-[9px] font-bold bg-white/90 text-slate-700 px-1.5 py-0.5 rounded font-mono">14/01</span>
+</div>
+<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+<p class="text-[10px] text-white font-semibold">ยางใหม่</p>
+</div>
+</div>
+<div class="aspect-square rounded-xl bg-gradient-to-br from-emerald-100 to-emerald-300 relative overflow-hidden">
+<div class="absolute inset-0 flex items-center justify-center">
+<i class="w-10 h-10 text-emerald-700" data-lucide="check-circle-2"></i>
+</div>
+<div class="absolute top-2 left-2">
+<span class="text-[9px] font-bold bg-white/90 text-slate-700 px-1.5 py-0.5 rounded font-mono">02/03</span>
+</div>
+<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+<p class="text-[10px] text-white font-semibold">เช็กระยะ</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- ============================================================ -->
+<div class="desktop-only min-h-screen bg-slate-50">
+<!-- Sidebar -->
+<aside class="bg-white border-r border-slate-200 flex flex-col sidebar">
+<div class="p-5 border-b border-slate-100 flex items-center gap-2.5 cursor-pointer" onclick="location.href='dashboard.html'">
+<div class="w-9 h-9 bg-brand-900 rounded-lg flex items-center justify-center sidebar-brand-row"><i class="w-5 h-5 text-white" data-lucide="truck"></i></div>
+<div><div class="font-bold text-slate-900 text-sm">Fleet Manager</div><div class="text-[10px] text-slate-500">บริษัท ABC</div></div>
+</div>
+<nav class="flex-1 p-3 space-y-0.5">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 text-sm font-medium" href="dashboard.html"><i class="w-4 h-4" data-lucide="layout-dashboard"></i>Dashboard</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-brand-900 text-white text-sm font-semibold" href="vehicles.html"><i class="w-4 h-4" data-lucide="truck"></i>รถทั้งหมด</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 text-sm font-medium" href="expense.html"><i class="w-4 h-4" data-lucide="receipt"></i>ค่าใช้จ่าย</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 text-sm font-medium" href="#"><i class="w-4 h-4" data-lucide="file-text"></i>เอกสาร</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 text-sm font-medium" href="#"><i class="w-4 h-4" data-lucide="wrench"></i>ซ่อมบำรุง</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 text-sm font-medium" href="permission.html"><i class="w-4 h-4" data-lucide="shield"></i>สิทธิ์การเข้าถึง</a>
+</nav>
+</aside>
+<div class="main-area">
+<!-- Header -->
+<header class="bg-white border-b border-slate-200 px-8 py-4">
+<div class="flex items-center gap-3"><button class="w-9 h-9 hover:bg-slate-100 rounded-lg flex items-center justify-center text-slate-600" onclick="toggleSidebar()" title="ซ่อน/แสดงเมนู"><span class="toggle-icon"><i class="w-4 h-4" data-lucide="panel-left"></i></span></button><div class="flex items-center gap-2 text-xs text-slate-500 mb-2">
+<a class="hover:text-brand-900" href="vehicles.html">รถทั้งหมด</a>
+<i class="w-3 h-3" data-lucide="chevron-right"></i>
+<span class="text-slate-900 font-medium">1กข-1234</span>
+</div></div>
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-4">
+<div class="w-14 h-14 bg-brand-100 rounded-xl flex items-center justify-center"><i class="w-7 h-7 text-brand-900" data-lucide="car"></i></div>
+<div>
+<div class="flex items-center gap-3">
+<h1 class="text-2xl font-extrabold text-slate-900 font-mono">1กข-1234</h1>
+<span class="inline-flex items-center gap-1.5 text-[11px] font-bold bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>ใช้งาน</span>
+</div>
+<p class="text-sm text-slate-600 mt-0.5">Toyota Vios 1.5G · 2023 · สีขาว</p>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 flex items-center gap-2"><i class="w-4 h-4" data-lucide="edit-2"></i>แก้ไข</button>
+<button class="px-3 py-2 bg-brand-900 hover:bg-brand-950 rounded-lg text-sm font-bold text-white flex items-center gap-2"><i class="w-4 h-4" data-lucide="plus"></i>เพิ่มค่าใช้จ่าย</button>
+</div>
+</div>
+</header>
+<!-- Tabs (desktop) -->
+<div class="bg-white border-b border-slate-200 px-8 sticky top-0 z-10">
+<div class="flex">
+<button class="tab-btn-desktop active px-4 py-3 text-sm text-slate-500 border-b-2 border-transparent hover:text-slate-900" data-tab="info">ข้อมูลรถ</button>
+<button class="tab-btn-desktop px-4 py-3 text-sm text-slate-500 border-b-2 border-transparent hover:text-slate-900" data-tab="docs">เอกสาร <span class="ml-1 text-[10px] bg-red-500 text-white px-1.5 rounded-full font-bold">1</span></button>
+<button class="tab-btn-desktop px-4 py-3 text-sm text-slate-500 border-b-2 border-transparent hover:text-slate-900" data-tab="repairs">ประวัติซ่อมบำรุง</button>
+<button class="tab-btn-desktop px-4 py-3 text-sm text-slate-500 border-b-2 border-transparent hover:text-slate-900" data-tab="expenses">ค่าใช้จ่าย</button>
+<button class="tab-btn-desktop px-4 py-3 text-sm text-slate-500 border-b-2 border-transparent hover:text-slate-900" data-tab="users">ผู้ใช้รถ</button>
+<button class="tab-btn-desktop px-4 py-3 text-sm text-slate-500 border-b-2 border-transparent hover:text-slate-900" data-tab="photos">รูปภาพ <span class="ml-1 text-[10px] bg-slate-200 text-slate-700 px-1.5 rounded-full font-bold font-mono">12</span></button>
+</div>
+</div>
+<!-- ====== DESKTOP TAB: ข้อมูล ====== -->
+<div class="tab-panel active" data-tab-panel="info">
+<div class="p-8 grid grid-cols-3 gap-5">
+<div class="col-span-2 space-y-5">
+<div class="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-4">
+<div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0"><i class="w-5 h-5 text-red-700" data-lucide="alert-triangle"></i></div>
+<div class="flex-1">
+<p class="font-bold text-sm text-red-900">พ.ร.บ. ใกล้หมดอายุ</p>
+<p class="text-xs text-red-700 mt-0.5">หมดอายุวันที่ 11 พฤษภาคม 2569 · เหลือเวลาอีก 7 วัน</p>
+</div>
+<button class="text-sm font-bold bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg">ต่ออายุเลย</button>
+</div>
+<div class="bg-white rounded-xl border border-slate-200">
+<div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+<h3 class="text-sm font-bold text-slate-900">ข้อมูลทั่วไป</h3>
+<button class="text-xs font-semibold text-brand-900">แก้ไข</button>
+</div>
+<div class="grid grid-cols-2 divide-x divide-slate-100">
+<dl class="divide-y divide-slate-100">
+<div class="px-5 py-2.5 flex justify-between"><dt class="text-xs text-slate-500">ยี่ห้อ</dt><dd class="text-sm font-semibold text-slate-900">Toyota</dd></div>
+<div class="px-5 py-2.5 flex justify-between"><dt class="text-xs text-slate-500">รุ่น</dt><dd class="text-sm font-semibold text-slate-900">Vios 1.5 G</dd></div>
+<div class="px-5 py-2.5 flex justify-between"><dt class="text-xs text-slate-500">ปี</dt><dd class="text-sm font-semibold text-slate-900 font-mono">2023</dd></div>
+<div class="px-5 py-2.5 flex justify-between"><dt class="text-xs text-slate-500">สี</dt><dd class="text-sm font-semibold text-slate-900">ขาว</dd></div>
+</dl>
+<dl class="divide-y divide-slate-100">
+<div class="px-5 py-2.5 flex justify-between"><dt class="text-xs text-slate-500">เลขเครื่อง</dt><dd class="text-xs font-mono text-slate-700">2NR-FE-12345</dd></div>
+<div class="px-5 py-2.5 flex justify-between"><dt class="text-xs text-slate-500">เลขตัวถัง</dt><dd class="text-xs font-mono text-slate-700">MR053KE301X</dd></div>
+<div class="px-5 py-2.5 flex justify-between"><dt class="text-xs text-slate-500">น้ำมัน</dt><dd class="text-sm font-semibold text-slate-900">เบนซิน 95</dd></div>
+<div class="px-5 py-2.5 flex justify-between"><dt class="text-xs text-slate-500">วันที่ซื้อ</dt><dd class="text-sm font-semibold text-slate-900 font-mono">15 ม.ค. 2566</dd></div>
+</dl>
+</div>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 p-5">
+<div class="flex items-center justify-between mb-3">
+<h3 class="text-sm font-bold text-slate-900">เลขไมล์</h3>
+<button class="text-xs font-semibold text-brand-900">+ บันทึกค่าปัจจุบัน</button>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="text-3xl font-extrabold text-slate-900 font-mono">45,230</span>
+<span class="text-sm text-slate-500">km</span>
+<span class="text-xs font-bold text-emerald-600 ml-2">+1,250 km เดือนนี้</span>
+</div>
+<div class="flex items-end gap-2 mt-4 h-16">
+<div class="flex-1 bg-brand-200 rounded-t" style="height:30%"></div>
+<div class="flex-1 bg-brand-200 rounded-t" style="height:45%"></div>
+<div class="flex-1 bg-brand-200 rounded-t" style="height:60%"></div>
+<div class="flex-1 bg-brand-200 rounded-t" style="height:50%"></div>
+<div class="flex-1 bg-brand-200 rounded-t" style="height:75%"></div>
+<div class="flex-1 bg-brand-900 rounded-t" style="height:90%"></div>
+</div>
+</div>
+</div>
+<div class="space-y-5">
+<div class="bg-white rounded-xl border border-slate-200 p-5">
+<h3 class="text-sm font-bold text-slate-900 mb-3">ผู้ใช้ปัจจุบัน</h3>
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 bg-brand-900 rounded-full flex items-center justify-center text-white font-bold">SC</div>
+<div class="flex-1 min-w-0">
+<div class="text-sm font-bold text-slate-900">สมชาย ใจดี</div>
+<div class="text-xs text-slate-500">ฝ่ายขาย · ID 1024</div>
+</div>
+</div>
+<button class="w-full mt-4 py-2 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50">เปลี่ยนผู้ใช้รถ</button>
+</div>
+<div class="bg-brand-900 rounded-xl p-5 text-white relative overflow-hidden">
+<div class="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-white/5"></div>
+<p class="text-[10px] uppercase tracking-widest text-white/60 font-bold">ค่าใช้จ่ายรวม</p>
+<p class="text-3xl font-extrabold font-mono mt-1">฿42,850</p>
+<p class="text-xs text-white/60 mt-1">ตั้งแต่เริ่มใช้งาน</p>
+<div class="mt-4 pt-4 border-t border-white/20 grid grid-cols-3 gap-2 text-center">
+<div><p class="text-[10px] text-white/60">น้ำมัน</p><p class="text-sm font-bold font-mono">฿28k</p></div>
+<div><p class="text-[10px] text-white/60">ซ่อม</p><p class="text-sm font-bold font-mono">฿9k</p></div>
+<div><p class="text-[10px] text-white/60">อื่นๆ</p><p class="text-sm font-bold font-mono">฿6k</p></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- ====== DESKTOP TAB: เอกสาร ====== -->
+<div class="tab-panel" data-tab-panel="docs">
+<div class="p-8">
+<!-- Top summary + action -->
+<div class="flex items-center justify-between mb-5">
+<div class="flex items-center gap-3">
+<div class="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+<span class="text-xs font-bold text-emerald-700">ปกติ <span class="font-mono ml-1">3</span></span>
+</div>
+<div class="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+<span class="text-xs font-bold text-amber-700">ใกล้หมด <span class="font-mono ml-1">0</span></span>
+</div>
+<div class="bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+<span class="text-xs font-bold text-red-700">เร่งด่วน <span class="font-mono ml-1">1</span></span>
+</div>
+</div>
+<button class="px-4 py-2 bg-brand-900 hover:bg-brand-950 rounded-lg text-sm font-bold text-white flex items-center gap-2"><i class="w-4 h-4" data-lucide="plus"></i>เพิ่มเอกสาร</button>
+</div>
+<!-- Documents grid -->
+<div class="grid grid-cols-2 gap-5">
+<!-- พ.ร.บ. -->
+<div class="bg-white rounded-xl border-2 border-red-200 overflow-hidden">
+<div class="bg-red-50 px-5 py-2 flex items-center gap-2">
+<i class="w-4 h-4 text-red-600" data-lucide="alert-triangle"></i>
+<span class="text-xs font-bold text-red-900">เร่งด่วน · เหลืออีก 7 วัน</span>
+</div>
+<div class="p-5">
+<div class="flex items-start gap-3 mb-4">
+<div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="w-6 h-6 text-red-700" data-lucide="shield-check"></i></div>
+<div class="flex-1">
+<h4 class="text-base font-bold text-slate-900">พ.ร.บ. คุ้มครองผู้ประสบภัย</h4>
+<p class="text-xs text-slate-500 mt-0.5">บริษัท วิริยะประกันภัย</p>
+</div>
+</div>
+<dl class="bg-slate-50 rounded-lg p-3 space-y-1.5">
+<div class="flex justify-between text-xs"><dt class="text-slate-500">เลขที่กรมธรรม์</dt><dd class="font-mono font-semibold text-slate-900">VR-2568-001234</dd></div>
+<div class="flex justify-between text-xs"><dt class="text-slate-500">วันคุ้มครอง</dt><dd class="font-mono font-semibold text-slate-900">12/05/68 - 11/05/69</dd></div>
+<div class="flex justify-between text-xs"><dt class="text-slate-500">ค่าเบี้ย</dt><dd class="font-mono font-bold text-slate-900">฿645</dd></div>
+</dl>
+<div class="flex gap-2 mt-3">
+<button class="flex-1 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5"><i class="w-3.5 h-3.5" data-lucide="eye"></i>ดูเอกสาร</button>
+<button class="flex-1 py-2 bg-red-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5"><i class="w-3.5 h-3.5" data-lucide="refresh-cw"></i>ต่ออายุเลย</button>
+</div>
+</div>
+</div>
+<!-- ภาษี -->
+<div class="bg-white rounded-xl border border-slate-200 p-5">
+<div class="flex items-start gap-3 mb-4">
+<div class="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="w-6 h-6 text-emerald-700" data-lucide="receipt"></i></div>
+<div class="flex-1">
+<div class="flex items-center gap-2">
+<h4 class="text-base font-bold text-slate-900">ภาษีรถยนต์</h4>
+<span class="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">ปกติ</span>
+</div>
+<p class="text-xs text-emerald-600 font-semibold mt-0.5">เหลืออีก 187 วัน</p>
+</div>
+</div>
+<dl class="bg-slate-50 rounded-lg p-3 space-y-1.5">
+<div class="flex justify-between text-xs"><dt class="text-slate-500">หมดอายุ</dt><dd class="font-mono font-semibold text-slate-900">11/11/2569</dd></div>
+<div class="flex justify-between text-xs"><dt class="text-slate-500">น้ำหนัก/แรงม้า</dt><dd class="font-mono font-semibold text-slate-900">1,150 kg</dd></div>
+<div class="flex justify-between text-xs"><dt class="text-slate-500">ค่าธรรมเนียม</dt><dd class="font-mono font-bold text-slate-900">฿1,420</dd></div>
+</dl>
+<button class="w-full mt-3 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5"><i class="w-3.5 h-3.5" data-lucide="eye"></i>ดูเอกสาร</button>
+</div>
+<!-- ประกัน -->
+<div class="bg-white rounded-xl border border-slate-200 p-5">
+<div class="flex items-start gap-3 mb-4">
+<div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="w-6 h-6 text-blue-700" data-lucide="shield"></i></div>
+<div class="flex-1">
+<div class="flex items-center gap-2">
+<h4 class="text-base font-bold text-slate-900">ประกันภัยชั้น 1</h4>
+<span class="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">ปกติ</span>
+</div>
+<p class="text-xs text-emerald-600 font-semibold mt-0.5">เหลืออีก 245 วัน</p>
+</div>
+</div>
+<dl class="bg-slate-50 rounded-lg p-3 space-y-1.5">
+<div class="flex justify-between text-xs"><dt class="text-slate-500">บริษัท</dt><dd class="font-semibold text-slate-900">เมืองไทยประกันภัย</dd></div>
+<div class="flex justify-between text-xs"><dt class="text-slate-500">หมดอายุ</dt><dd class="font-mono font-semibold text-slate-900">06/01/2570</dd></div>
+<div class="flex justify-between text-xs"><dt class="text-slate-500">ทุนประกัน</dt><dd class="font-mono font-bold text-slate-900">฿500,000</dd></div>
+</dl>
+<button class="w-full mt-3 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5"><i class="w-3.5 h-3.5" data-lucide="eye"></i>ดูเอกสาร</button>
+</div>
+<!-- ทะเบียน -->
+<div class="bg-white rounded-xl border border-slate-200 p-5">
+<div class="flex items-start gap-3 mb-4">
+<div class="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="w-6 h-6 text-slate-600" data-lucide="file-text"></i></div>
+<div class="flex-1">
+<h4 class="text-base font-bold text-slate-900">เล่มทะเบียนรถ</h4>
+<p class="text-xs text-slate-500 mt-0.5">เอกสารถาวร</p>
+</div>
+</div>
+<div class="bg-slate-50 rounded-lg p-3 flex items-center gap-2">
+<i class="w-4 h-4 text-slate-500" data-lucide="file"></i>
+<span class="text-xs font-mono text-slate-700 flex-1">tabian_1234.pdf</span>
+<span class="text-[10px] text-slate-400">2.4 MB</span>
+</div>
+<button class="w-full mt-3 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5"><i class="w-3.5 h-3.5" data-lucide="download"></i>ดาวน์โหลด</button>
+</div>
+</div>
+</div>
+</div>
+<!-- ====== DESKTOP TAB: ซ่อมบำรุง ====== -->
+<div class="tab-panel" data-tab-panel="repairs">
+<div class="p-8 grid grid-cols-3 gap-5">
+<div class="col-span-2">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-base font-bold text-slate-900">ประวัติการซ่อมบำรุง</h3>
+<button class="px-4 py-2 bg-brand-900 hover:bg-brand-950 rounded-lg text-sm font-bold text-white flex items-center gap-2"><i class="w-4 h-4" data-lucide="plus"></i>บันทึกการซ่อม</button>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+<table class="w-full text-sm">
+<thead class="bg-slate-50 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+<tr>
+<th class="px-5 py-2.5">วันที่</th>
+<th class="px-5 py-2.5">รายการ</th>
+<th class="px-5 py-2.5">เลขไมล์</th>
+<th class="px-5 py-2.5">ที่ทำ</th>
+<th class="px-5 py-2.5 text-right">ค่าใช้จ่าย</th>
+<th class="px-5 py-2.5 w-10"></th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100">
+<tr class="hover:bg-slate-50">
+<td class="px-5 py-3 font-mono text-xs text-slate-600">19/04/69</td>
+<td class="px-5 py-3">
+<div class="flex items-center gap-2">
+<div class="w-7 h-7 bg-amber-100 rounded flex items-center justify-center"><i class="w-3.5 h-3.5 text-amber-700" data-lucide="wrench"></i></div>
+<div>
+<div class="font-semibold text-slate-900">เปลี่ยนน้ำมันเครื่อง + ไส้กรอง</div>
+<div class="text-[11px] text-slate-500">Castrol GTX 5W-30</div>
+</div>
+</div>
+</td>
+<td class="px-5 py-3 font-mono text-slate-700">45,000</td>
+<td class="px-5 py-3 text-slate-700">ศูนย์บริการ Toyota บางนา</td>
+<td class="px-5 py-3 text-right font-mono font-bold">฿2,850</td>
+<td class="px-5 py-3"><i class="w-4 h-4 text-slate-400" data-lucide="more-vertical"></i></td>
+</tr>
+<tr class="hover:bg-slate-50">
+<td class="px-5 py-3 font-mono text-xs text-slate-600">02/03/69</td>
+<td class="px-5 py-3">
+<div class="flex items-center gap-2">
+<div class="w-7 h-7 bg-blue-100 rounded flex items-center justify-center"><i class="w-3.5 h-3.5 text-blue-700" data-lucide="circle-dot"></i></div>
+<div>
+<div class="font-semibold text-slate-900">เช็กระยะ 40,000 km</div>
+<div class="text-[11px] text-slate-500">เบรก, ช่วงล่าง, น้ำหล่อเย็น</div>
+</div>
+</div>
+</td>
+<td class="px-5 py-3 font-mono text-slate-700">40,150</td>
+<td class="px-5 py-3 text-slate-700">ศูนย์บริการ Toyota บางนา</td>
+<td class="px-5 py-3 text-right font-mono font-bold">฿3,500</td>
+<td class="px-5 py-3"><i class="w-4 h-4 text-slate-400" data-lucide="more-vertical"></i></td>
+</tr>
+<tr class="hover:bg-slate-50">
+<td class="px-5 py-3 font-mono text-xs text-slate-600">14/01/69</td>
+<td class="px-5 py-3">
+<div class="flex items-center gap-2">
+<div class="w-7 h-7 bg-red-100 rounded flex items-center justify-center"><i class="w-3.5 h-3.5 text-red-700" data-lucide="alert-circle"></i></div>
+<div>
+<div class="font-semibold text-slate-900">เปลี่ยนยางหน้า 2 เส้น</div>
+<div class="text-[11px] text-slate-500">Bridgestone Turanza T005</div>
+</div>
+</div>
+</td>
+<td class="px-5 py-3 font-mono text-slate-700">38,200</td>
+<td class="px-5 py-3 text-slate-700">B-Quik พระราม 9</td>
+<td class="px-5 py-3 text-right font-mono font-bold">฿4,800</td>
+<td class="px-5 py-3"><i class="w-4 h-4 text-slate-400" data-lucide="more-vertical"></i></td>
+</tr>
+<tr class="hover:bg-slate-50">
+<td class="px-5 py-3 font-mono text-xs text-slate-600">08/10/68</td>
+<td class="px-5 py-3">
+<div class="flex items-center gap-2">
+<div class="w-7 h-7 bg-emerald-100 rounded flex items-center justify-center"><i class="w-3.5 h-3.5 text-emerald-700" data-lucide="check"></i></div>
+<div>
+<div class="font-semibold text-slate-900">เปลี่ยนน้ำมันเครื่อง</div>
+<div class="text-[11px] text-slate-500">Mobil 1 5W-40</div>
+</div>
+</div>
+</td>
+<td class="px-5 py-3 font-mono text-slate-700">35,000</td>
+<td class="px-5 py-3 text-slate-700">ศูนย์บริการ Toyota</td>
+<td class="px-5 py-3 text-right font-mono font-bold">฿2,650</td>
+<td class="px-5 py-3"><i class="w-4 h-4 text-slate-400" data-lucide="more-vertical"></i></td>
+</tr>
+</tbody>
+<tfoot class="bg-slate-50 border-t border-slate-200">
+<tr><td class="px-5 py-3 text-sm font-bold text-slate-700 text-right" colspan="4">รวม 8 รายการ</td><td class="px-5 py-3 text-right font-mono font-extrabold text-base text-brand-900">฿9,250</td><td></td></tr>
+</tfoot>
+</table>
+</div>
+</div>
+<!-- Side panel -->
+<div class="space-y-5">
+<div class="bg-amber-50 border border-amber-200 rounded-xl p-5">
+<div class="flex items-center gap-2 mb-2">
+<i class="w-4 h-4 text-amber-700" data-lucide="clock"></i>
+<h4 class="text-sm font-bold text-amber-900">ครบกำหนด</h4>
+</div>
+<p class="text-xs text-amber-800 leading-relaxed">เปลี่ยนน้ำมันเครื่องครบกำหนด · เปลี่ยนทุก 10,000 km · ปัจจุบัน 47,730 km</p>
+<button class="w-full mt-3 py-2 bg-amber-600 text-white rounded-lg text-xs font-bold">นัดเข้าซ่อม</button>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 p-5">
+<h4 class="text-sm font-bold text-slate-900 mb-3">สถิติ</h4>
+<dl class="space-y-2.5">
+<div class="flex justify-between text-sm">
+<dt class="text-slate-500">ครั้งทั้งหมด</dt>
+<dd class="font-bold text-slate-900 font-mono">8 ครั้ง</dd>
+</div>
+<div class="flex justify-between text-sm">
+<dt class="text-slate-500">ค่าเฉลี่ย/ครั้ง</dt>
+<dd class="font-bold text-slate-900 font-mono">฿1,156</dd>
+</div>
+<div class="flex justify-between text-sm">
+<dt class="text-slate-500">ระยะห่างเฉลี่ย</dt>
+<dd class="font-bold text-slate-900 font-mono">5,650 km</dd>
+</div>
+<div class="flex justify-between text-sm">
+<dt class="text-slate-500">ครั้งล่าสุด</dt>
+<dd class="font-bold text-slate-900">15 วัน</dd>
+</div>
+</dl>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 p-5">
+<h4 class="text-sm font-bold text-slate-900 mb-3">ประเภทที่ทำบ่อย</h4>
+<div class="space-y-2">
+<div>
+<div class="flex justify-between text-xs mb-1">
+<span class="text-slate-700 font-semibold">เปลี่ยนน้ำมันเครื่อง</span>
+<span class="text-slate-500 font-mono">3 ครั้ง</span>
+</div>
+<div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-brand-900 rounded-full" style="width:60%"></div></div>
+</div>
+<div>
+<div class="flex justify-between text-xs mb-1">
+<span class="text-slate-700 font-semibold">เช็กระยะ</span>
+<span class="text-slate-500 font-mono">2 ครั้ง</span>
+</div>
+<div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-brand-900 rounded-full" style="width:40%"></div></div>
+</div>
+<div>
+<div class="flex justify-between text-xs mb-1">
+<span class="text-slate-700 font-semibold">เปลี่ยนยาง</span>
+<span class="text-slate-500 font-mono">2 ครั้ง</span>
+</div>
+<div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-brand-900 rounded-full" style="width:40%"></div></div>
+</div>
+<div>
+<div class="flex justify-between text-xs mb-1">
+<span class="text-slate-700 font-semibold">อะไหล่ทั่วไป</span>
+<span class="text-slate-500 font-mono">1 ครั้ง</span>
+</div>
+<div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-brand-900 rounded-full" style="width:20%"></div></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- ====== DESKTOP TAB: ค่าใช้จ่าย ====== -->
+<div class="tab-panel" data-tab-panel="expenses">
+<div class="p-8">
+<!-- Filters -->
+<div class="bg-white rounded-xl border border-slate-200 p-4 mb-5 flex items-center gap-3">
+<div class="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
+<button class="w-7 h-7 flex items-center justify-center hover:bg-white rounded-md"><i class="w-4 h-4" data-lucide="chevron-left"></i></button>
+<span class="text-sm font-bold text-slate-900 px-3">พฤษภาคม 2569</span>
+<button class="w-7 h-7 flex items-center justify-center hover:bg-white rounded-md"><i class="w-4 h-4" data-lucide="chevron-right"></i></button>
+</div>
+<select class="border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"><option>ทุกประเภท</option></select>
+<div class="ml-auto">
+<button class="px-4 py-2 bg-brand-900 hover:bg-brand-950 rounded-lg text-sm font-bold text-white flex items-center gap-2"><i class="w-4 h-4" data-lucide="plus"></i>เพิ่มรายการ</button>
+</div>
+</div>
+<!-- Summary cards -->
+<div class="grid grid-cols-4 gap-4 mb-5">
+<div class="bg-brand-900 rounded-xl p-5 text-white relative overflow-hidden">
+<div class="absolute -right-4 -bottom-4 w-20 h-20 rounded-full bg-white/5"></div>
+<p class="text-[10px] uppercase tracking-wider text-white/60 font-bold">เดือนนี้</p>
+<p class="text-2xl font-extrabold font-mono mt-1">฿4,720</p>
+<p class="text-[11px] text-emerald-300 mt-1 font-semibold">↓ 8% vs เม.ย.</p>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 p-5">
+<div class="flex items-center gap-2 mb-2"><div class="w-7 h-7 bg-emerald-100 rounded-md flex items-center justify-center"><i class="w-3.5 h-3.5 text-emerald-700" data-lucide="fuel"></i></div><span class="text-[11px] text-slate-500 font-semibold">น้ำมัน · 76%</span></div>
+<p class="text-2xl font-extrabold text-slate-900 font-mono">฿3,600</p>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 p-5">
+<div class="flex items-center gap-2 mb-2"><div class="w-7 h-7 bg-amber-100 rounded-md flex items-center justify-center"><i class="w-3.5 h-3.5 text-amber-700" data-lucide="wrench"></i></div><span class="text-[11px] text-slate-500 font-semibold">ซ่อม · 18%</span></div>
+<p class="text-2xl font-extrabold text-slate-900 font-mono">฿850</p>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 p-5">
+<div class="flex items-center gap-2 mb-2"><div class="w-7 h-7 bg-purple-100 rounded-md flex items-center justify-center"><i class="w-3.5 h-3.5 text-purple-700" data-lucide="more-horizontal"></i></div><span class="text-[11px] text-slate-500 font-semibold">อื่นๆ · 6%</span></div>
+<p class="text-2xl font-extrabold text-slate-900 font-mono">฿270</p>
+</div>
+</div>
+<!-- Expense table -->
+<div class="bg-white rounded-xl border border-slate-200">
+<div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+<h3 class="text-sm font-bold text-slate-900">รายการค่าใช้จ่ายของรถคันนี้</h3>
+<input class="text-xs border border-slate-200 rounded-md px-3 py-1.5 w-48" placeholder="ค้นหา..."/>
+</div>
+<table class="w-full text-sm">
+<thead class="bg-slate-50 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+<tr><th class="px-5 py-2.5">วันที่</th><th class="px-5 py-2.5">ประเภท</th><th class="px-5 py-2.5">รายละเอียด</th><th class="px-5 py-2.5">โดย</th><th class="px-5 py-2.5 text-right">จำนวน</th><th class="px-5 py-2.5 w-10"></th></tr>
+</thead>
+<tbody class="divide-y divide-slate-100">
+<tr class="hover:bg-slate-50"><td class="px-5 py-3 font-mono text-xs text-slate-600">04/05 08:30</td><td class="px-5 py-3"><span class="inline-flex items-center gap-1.5 text-emerald-700 text-xs font-medium"><i class="w-3 h-3" data-lucide="fuel"></i>น้ำมัน</span></td><td class="px-5 py-3 text-slate-700">เบนซิน 95 · 30 ลิตร</td><td class="px-5 py-3 text-slate-600">สมชาย</td><td class="px-5 py-3 text-right font-mono font-bold">฿1,200</td><td class="px-5 py-3"><i class="w-4 h-4 text-slate-400" data-lucide="more-vertical"></i></td></tr>
+<tr class="hover:bg-slate-50"><td class="px-5 py-3 font-mono text-xs text-slate-600">02/05 14:15</td><td class="px-5 py-3"><span class="inline-flex items-center gap-1.5 text-blue-700 text-xs font-medium"><i class="w-3 h-3" data-lucide="parking-circle"></i>จอดรถ</span></td><td class="px-5 py-3 text-slate-700">Central Bangna</td><td class="px-5 py-3 text-slate-600">สมชาย</td><td class="px-5 py-3 text-right font-mono font-bold">฿80</td><td class="px-5 py-3"><i class="w-4 h-4 text-slate-400" data-lucide="more-vertical"></i></td></tr>
+<tr class="hover:bg-slate-50"><td class="px-5 py-3 font-mono text-xs text-slate-600">28/04 17:50</td><td class="px-5 py-3"><span class="inline-flex items-center gap-1.5 text-emerald-700 text-xs font-medium"><i class="w-3 h-3" data-lucide="fuel"></i>น้ำมัน</span></td><td class="px-5 py-3 text-slate-700">เบนซิน 95 · 28 ลิตร</td><td class="px-5 py-3 text-slate-600">สมชาย</td><td class="px-5 py-3 text-right font-mono font-bold">฿1,120</td><td class="px-5 py-3"><i class="w-4 h-4 text-slate-400" data-lucide="more-vertical"></i></td></tr>
+<tr class="hover:bg-slate-50"><td class="px-5 py-3 font-mono text-xs text-slate-600">25/04 09:10</td><td class="px-5 py-3"><span class="inline-flex items-center gap-1.5 text-purple-700 text-xs font-medium"><i class="w-3 h-3" data-lucide="route"></i>ทางด่วน</span></td><td class="px-5 py-3 text-slate-700">บางนา-สีลม</td><td class="px-5 py-3 text-slate-600">สมชาย</td><td class="px-5 py-3 text-right font-mono font-bold">฿85</td><td class="px-5 py-3"><i class="w-4 h-4 text-slate-400" data-lucide="more-vertical"></i></td></tr>
+<tr class="hover:bg-slate-50"><td class="px-5 py-3 font-mono text-xs text-slate-600">20/04 11:30</td><td class="px-5 py-3"><span class="inline-flex items-center gap-1.5 text-amber-700 text-xs font-medium"><i class="w-3 h-3" data-lucide="wrench"></i>ซ่อม</span></td><td class="px-5 py-3 text-slate-700">เปลี่ยนใบปัดน้ำฝน</td><td class="px-5 py-3 text-slate-600">ประสิทธิ์</td><td class="px-5 py-3 text-right font-mono font-bold">฿850</td><td class="px-5 py-3"><i class="w-4 h-4 text-slate-400" data-lucide="more-vertical"></i></td></tr>
+<tr class="hover:bg-slate-50"><td class="px-5 py-3 font-mono text-xs text-slate-600">15/04 18:30</td><td class="px-5 py-3"><span class="inline-flex items-center gap-1.5 text-emerald-700 text-xs font-medium"><i class="w-3 h-3" data-lucide="fuel"></i>น้ำมัน</span></td><td class="px-5 py-3 text-slate-700">เบนซิน 95 · 32 ลิตร</td><td class="px-5 py-3 text-slate-600">สมชาย</td><td class="px-5 py-3 text-right font-mono font-bold">฿1,280</td><td class="px-5 py-3"><i class="w-4 h-4 text-slate-400" data-lucide="more-vertical"></i></td></tr>
+<tr class="hover:bg-slate-50"><td class="px-5 py-3 font-mono text-xs text-slate-600">08/04 12:20</td><td class="px-5 py-3"><span class="inline-flex items-center gap-1.5 text-blue-700 text-xs font-medium"><i class="w-3 h-3" data-lucide="parking-circle"></i>จอดรถ</span></td><td class="px-5 py-3 text-slate-700">Office Building</td><td class="px-5 py-3 text-slate-600">สมชาย</td><td class="px-5 py-3 text-right font-mono font-bold">฿105</td><td class="px-5 py-3"><i class="w-4 h-4 text-slate-400" data-lucide="more-vertical"></i></td></tr>
+</tbody>
+<tfoot class="bg-slate-50 border-t border-slate-200">
+<tr><td class="px-5 py-3 text-sm font-bold text-slate-700 text-right" colspan="4">รวม 12 รายการในเดือนนี้</td><td class="px-5 py-3 text-right font-mono font-extrabold text-base text-brand-900">฿4,720</td><td></td></tr>
+</tfoot>
+</table>
+</div>
+</div>
+</div>
+<!-- ====== DESKTOP TAB: ผู้ใช้รถ ====== -->
+<div class="tab-panel" data-tab-panel="users">
+<div class="p-8 grid grid-cols-3 gap-5">
+<!-- Current user (large) -->
+<div class="col-span-2 space-y-5">
+<div class="bg-white rounded-xl border-2 border-brand-900 p-6">
+<div class="flex items-center gap-2 mb-4">
+<span class="text-[10px] font-bold bg-brand-900 text-white px-2 py-0.5 rounded-full uppercase tracking-wider">ผู้ใช้ปัจจุบัน</span>
+<span class="text-[10px] text-emerald-600 font-bold flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>ออนไลน์ · 2 ชม.ก่อน</span>
+</div>
+<div class="flex items-start gap-4">
+<div class="w-20 h-20 bg-brand-900 rounded-full flex items-center justify-center text-white font-bold text-2xl">SC</div>
+<div class="flex-1 min-w-0">
+<h3 class="text-xl font-bold text-slate-900">สมชาย ใจดี</h3>
+<p class="text-sm text-slate-600 mt-1">ฝ่ายขาย · ID 1024 · somchai@company.co.th</p>
+<p class="text-xs text-slate-500 mt-1">เริ่มใช้รถคันนี้: 1 ม.ค. 2569 · ใช้มา 124 วัน</p>
+</div>
+<div class="flex gap-2">
+<button class="px-3 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 flex items-center gap-1.5"><i class="w-3.5 h-3.5" data-lucide="phone"></i>ติดต่อ</button>
+<button class="px-3 py-2 bg-brand-900 text-white rounded-lg text-xs font-bold flex items-center gap-1.5"><i class="w-3.5 h-3.5" data-lucide="user-check"></i>เปลี่ยนผู้ใช้</button>
+</div>
+</div>
+<div class="grid grid-cols-4 gap-3 mt-6 pt-6 border-t border-slate-100">
+<div class="text-center">
+<p class="text-2xl font-extrabold text-slate-900 font-mono">1,250</p>
+<p class="text-xs text-slate-500 mt-0.5">km เดือนนี้</p>
+</div>
+<div class="text-center">
+<p class="text-2xl font-extrabold text-slate-900 font-mono">฿4,720</p>
+<p class="text-xs text-slate-500 mt-0.5">ค่าใช้จ่าย</p>
+</div>
+<div class="text-center">
+<p class="text-2xl font-extrabold text-slate-900 font-mono">12</p>
+<p class="text-xs text-slate-500 mt-0.5">รายการ</p>
+</div>
+<div class="text-center">
+<p class="text-2xl font-extrabold text-slate-900 font-mono">96%</p>
+<p class="text-xs text-slate-500 mt-0.5">การใช้งาน</p>
+</div>
+</div>
+</div>
+<!-- History table -->
+<div class="bg-white rounded-xl border border-slate-200">
+<div class="px-5 py-3 border-b border-slate-100">
+<h3 class="text-sm font-bold text-slate-900">ประวัติผู้ใช้รถ</h3>
+</div>
+<table class="w-full text-sm">
+<thead class="bg-slate-50 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+<tr><th class="px-5 py-2.5">ผู้ใช้</th><th class="px-5 py-2.5">แผนก</th><th class="px-5 py-2.5">ช่วงเวลา</th><th class="px-5 py-2.5">ระยะ</th><th class="px-5 py-2.5 text-right">km</th><th class="px-5 py-2.5"></th></tr>
+</thead>
+<tbody class="divide-y divide-slate-100">
+<tr class="hover:bg-slate-50">
+<td class="px-5 py-3"><div class="flex items-center gap-2"><div class="w-8 h-8 bg-brand-900 rounded-full flex items-center justify-center text-white font-bold text-[10px]">SC</div><span class="font-semibold text-slate-900">สมชาย ใจดี</span></div></td>
+<td class="px-5 py-3 text-slate-600">ฝ่ายขาย</td>
+<td class="px-5 py-3 font-mono text-xs text-slate-700">1 ม.ค. 69 - ปัจจุบัน</td>
+<td class="px-5 py-3 text-slate-700">124 วัน</td>
+<td class="px-5 py-3 text-right font-mono font-bold text-slate-900">5,030</td>
+<td class="px-5 py-3"><span class="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">ปัจจุบัน</span></td>
+</tr>
+<tr class="hover:bg-slate-50">
+<td class="px-5 py-3"><div class="flex items-center gap-2"><div class="w-8 h-8 bg-amber-600 rounded-full flex items-center justify-center text-white font-bold text-[10px]">วภ</div><span class="font-semibold text-slate-900">วิภา พงษ์</span></div></td>
+<td class="px-5 py-3 text-slate-600">ฝ่ายขนส่ง</td>
+<td class="px-5 py-3 font-mono text-xs text-slate-700">1 ก.ย. 68 - 31 ธ.ค. 68</td>
+<td class="px-5 py-3 text-slate-700">122 วัน</td>
+<td class="px-5 py-3 text-right font-mono font-bold text-slate-900">8,500</td>
+<td class="px-5 py-3"><i class="w-4 h-4 text-slate-400" data-lucide="more-vertical"></i></td>
+</tr>
+<tr class="hover:bg-slate-50">
+<td class="px-5 py-3"><div class="flex items-center gap-2"><div class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold text-[10px]">นพ</div><span class="font-semibold text-slate-900">นพดล ก.</span></div></td>
+<td class="px-5 py-3 text-slate-600">ฝ่ายบัญชี</td>
+<td class="px-5 py-3 font-mono text-xs text-slate-700">15 ม.ค. 67 - 31 ส.ค. 68</td>
+<td class="px-5 py-3 text-slate-700">1 ปี 7 ด.</td>
+<td class="px-5 py-3 text-right font-mono font-bold text-slate-900">32,500</td>
+<td class="px-5 py-3"><i class="w-4 h-4 text-slate-400" data-lucide="more-vertical"></i></td>
+</tr>
+</tbody>
+<tfoot class="bg-slate-50 border-t border-slate-200">
+<tr><td class="px-5 py-3 text-sm font-bold text-slate-700 text-right" colspan="4">รวม</td><td class="px-5 py-3 text-right font-mono font-extrabold text-base text-brand-900">46,030</td><td></td></tr>
+</tfoot>
+</table>
+</div>
+</div>
+<!-- Side -->
+<div class="space-y-5">
+<div class="bg-white rounded-xl border border-slate-200 p-5">
+<h4 class="text-sm font-bold text-slate-900 mb-3">สถิติการใช้งาน</h4>
+<dl class="space-y-3">
+<div class="flex justify-between text-sm">
+<dt class="text-slate-500">ผู้ใช้ทั้งหมด</dt>
+<dd class="font-bold text-slate-900 font-mono">3 คน</dd>
+</div>
+<div class="flex justify-between text-sm">
+<dt class="text-slate-500">การเปลี่ยนผู้ใช้</dt>
+<dd class="font-bold text-slate-900 font-mono">2 ครั้ง</dd>
+</div>
+<div class="flex justify-between text-sm">
+<dt class="text-slate-500">ใช้นานที่สุด</dt>
+<dd class="font-bold text-slate-900">นพดล (1 ปี 7 ด.)</dd>
+</div>
+<div class="flex justify-between text-sm">
+<dt class="text-slate-500">km เฉลี่ย/วัน</dt>
+<dd class="font-bold text-slate-900 font-mono">~ 40 km</dd>
+</div>
+</dl>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 p-5">
+<h4 class="text-sm font-bold text-slate-900 mb-3">การกระทำที่ผ่านมา</h4>
+<div class="space-y-3 text-xs">
+<div class="flex items-start gap-2">
+<div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"><i class="w-3 h-3 text-blue-600" data-lucide="user-plus"></i></div>
+<div class="flex-1">
+<p class="font-semibold text-slate-900">สมชาย เริ่มใช้รถ</p>
+<p class="text-slate-500 mt-0.5">1 ม.ค. 2569 · โดย Admin</p>
+</div>
+</div>
+<div class="flex items-start gap-2">
+<div class="w-6 h-6 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"><i class="w-3 h-3 text-amber-600" data-lucide="user-x"></i></div>
+<div class="flex-1">
+<p class="font-semibold text-slate-900">วิภา หยุดใช้รถ</p>
+<p class="text-slate-500 mt-0.5">31 ธ.ค. 2568</p>
+</div>
+</div>
+<div class="flex items-start gap-2">
+<div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"><i class="w-3 h-3 text-blue-600" data-lucide="user-plus"></i></div>
+<div class="flex-1">
+<p class="font-semibold text-slate-900">วิภา เริ่มใช้รถ</p>
+<p class="text-slate-500 mt-0.5">1 ก.ย. 2568 · โดย Admin</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- ====== DESKTOP TAB: รูปภาพ ====== -->
+<div class="tab-panel" data-tab-panel="photos">
+<div class="p-8">
+<!-- Header row -->
+<div class="flex items-center justify-between mb-5">
+<div class="flex items-center gap-3">
+<div class="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+<span class="text-xs font-bold text-blue-700">รถ <span class="font-mono ml-1">5</span></span>
+</div>
+<div class="bg-purple-50 border border-purple-200 rounded-lg px-3 py-2">
+<span class="text-xs font-bold text-purple-700">เอกสาร <span class="font-mono ml-1">4</span></span>
+</div>
+<div class="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+<span class="text-xs font-bold text-amber-700">ซ่อม <span class="font-mono ml-1">3</span></span>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 flex items-center gap-2 hover:bg-slate-50"><i class="w-4 h-4" data-lucide="download"></i>ดาวน์โหลดทั้งหมด</button>
+<button class="px-4 py-2 bg-brand-900 hover:bg-brand-950 rounded-lg text-sm font-bold text-white flex items-center gap-2"><i class="w-4 h-4" data-lucide="upload"></i>อัปโหลดรูป</button>
+</div>
+</div>
+<!-- Filter row -->
+<div class="bg-white rounded-xl border border-slate-200 p-3 mb-5 flex items-center gap-2 flex-wrap">
+<button class="px-3 py-1.5 rounded-md bg-brand-900 text-white text-xs font-bold">ทั้งหมด · 12</button>
+<button class="px-3 py-1.5 rounded-md text-slate-700 text-xs font-medium hover:bg-slate-50">ภายนอก · 3</button>
+<button class="px-3 py-1.5 rounded-md text-slate-700 text-xs font-medium hover:bg-slate-50">ภายใน · 2</button>
+<button class="px-3 py-1.5 rounded-md text-slate-700 text-xs font-medium hover:bg-slate-50">เอกสาร · 4</button>
+<button class="px-3 py-1.5 rounded-md text-slate-700 text-xs font-medium hover:bg-slate-50">ซ่อม · 3</button>
+<div class="ml-auto flex items-center gap-2">
+<button class="w-8 h-8 bg-brand-900 text-white rounded-md flex items-center justify-center"><i class="w-4 h-4" data-lucide="grid-3x3"></i></button>
+<button class="w-8 h-8 text-slate-500 hover:bg-slate-100 rounded-md flex items-center justify-center"><i class="w-4 h-4" data-lucide="list"></i></button>
+</div>
+</div>
+<!-- Section: ภายนอกรถ -->
+<div class="mb-8">
+<div class="flex items-center justify-between mb-3">
+<h3 class="text-sm font-bold text-slate-900">ภายนอกรถ</h3>
+<button class="text-xs font-semibold text-brand-900 hover:underline">ดูทั้งหมด →</button>
+</div>
+<div class="grid grid-cols-5 gap-3">
+<!-- Front -->
+<div class="aspect-square rounded-xl bg-gradient-to-br from-slate-200 to-slate-300 relative overflow-hidden cursor-pointer group hover:ring-2 hover:ring-brand-900 transition">
+<div class="absolute inset-0 flex items-center justify-center">
+<i class="w-14 h-14 text-slate-400" data-lucide="car-front"></i>
+</div>
+<div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition"></div>
+<div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition">
+<button class="w-7 h-7 bg-white rounded-full flex items-center justify-center shadow-lg"><i class="w-3.5 h-3.5 text-slate-700" data-lucide="maximize-2"></i></button>
+</div>
+<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+<p class="text-xs text-white font-bold">หน้ารถ</p>
+<p class="text-[10px] text-white/70 font-mono">15/01/2566</p>
+</div>
+</div>
+<!-- Side L -->
+<div class="aspect-square rounded-xl bg-gradient-to-br from-slate-300 to-slate-400 relative overflow-hidden cursor-pointer group hover:ring-2 hover:ring-brand-900 transition">
+<div class="absolute inset-0 flex items-center justify-center">
+<i class="w-14 h-14 text-slate-500" data-lucide="car"></i>
+</div>
+<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+<p class="text-xs text-white font-bold">ด้านซ้าย</p>
+<p class="text-[10px] text-white/70 font-mono">15/01/2566</p>
+</div>
+</div>
+<!-- Side R -->
+<div class="aspect-square rounded-xl bg-gradient-to-br from-slate-400 to-slate-500 relative overflow-hidden cursor-pointer group hover:ring-2 hover:ring-brand-900 transition">
+<div class="absolute inset-0 flex items-center justify-center">
+<i class="w-14 h-14 text-slate-600 -scale-x-100" data-lucide="car"></i>
+</div>
+<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+<p class="text-xs text-white font-bold">ด้านขวา</p>
+<p class="text-[10px] text-white/70 font-mono">15/01/2566</p>
+</div>
+</div>
+<!-- Rear -->
+<div class="aspect-square rounded-xl bg-gradient-to-br from-slate-200 to-slate-400 relative overflow-hidden cursor-pointer group hover:ring-2 hover:ring-brand-900 transition">
+<div class="absolute inset-0 flex items-center justify-center">
+<i class="w-14 h-14 text-slate-400 rotate-180" data-lucide="car"></i>
+</div>
+<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+<p class="text-xs text-white font-bold">หลังรถ</p>
+<p class="text-[10px] text-white/70 font-mono">15/01/2566</p>
+</div>
+</div>
+<!-- Add -->
+<button class="aspect-square rounded-xl bg-slate-50 border-2 border-dashed border-slate-300 flex flex-col items-center justify-center gap-2 hover:border-brand-900 hover:bg-brand-50 transition">
+<div class="w-10 h-10 bg-white rounded-full flex items-center justify-center"><i class="w-5 h-5 text-slate-500" data-lucide="plus"></i></div>
+<span class="text-xs text-slate-600 font-bold">เพิ่มรูป</span>
+</button>
+</div>
+</div>
+<!-- Section: ภายในรถ -->
+<div class="mb-8">
+<div class="flex items-center justify-between mb-3">
+<h3 class="text-sm font-bold text-slate-900">ภายในรถ</h3>
+<button class="text-xs font-semibold text-brand-900 hover:underline">ดูทั้งหมด →</button>
+</div>
+<div class="grid grid-cols-5 gap-3">
+<div class="aspect-square rounded-xl bg-gradient-to-br from-stone-200 to-stone-400 relative overflow-hidden cursor-pointer group hover:ring-2 hover:ring-brand-900 transition">
+<div class="absolute inset-0 flex items-center justify-center">
+<i class="w-14 h-14 text-stone-500" data-lucide="armchair"></i>
+</div>
+<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+<p class="text-xs text-white font-bold">เบาะ</p>
+<p class="text-[10px] text-white/70 font-mono">20/01/2566</p>
+</div>
+</div>
+<div class="aspect-square rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 relative overflow-hidden cursor-pointer group hover:ring-2 hover:ring-brand-900 transition">
+<div class="absolute inset-0 flex items-center justify-center">
+<i class="w-14 h-14 text-slate-300" data-lucide="gauge"></i>
+</div>
+<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+<p class="text-xs text-white font-bold">แดชบอร์ด</p>
+<p class="text-[10px] text-white/70 font-mono">20/01/2566</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Section: เอกสาร -->
+<div class="mb-8">
+<div class="flex items-center justify-between mb-3">
+<h3 class="text-sm font-bold text-slate-900">เอกสาร</h3>
+<button class="text-xs font-semibold text-brand-900 hover:underline">ดูทั้งหมด →</button>
+</div>
+<div class="grid grid-cols-5 gap-3">
+<div class="aspect-square rounded-xl bg-gradient-to-br from-blue-100 to-blue-300 relative overflow-hidden cursor-pointer group hover:ring-2 hover:ring-brand-900 transition">
+<div class="absolute inset-0 flex items-center justify-center">
+<i class="w-14 h-14 text-blue-700" data-lucide="shield-check"></i>
+</div>
+<div class="absolute top-2 left-2">
+<span class="text-[9px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded">ใกล้หมด</span>
+</div>
+<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+<p class="text-xs text-white font-bold">พ.ร.บ.</p>
+<p class="text-[10px] text-white/70 font-mono">12/05/2568</p>
+</div>
+</div>
+<div class="aspect-square rounded-xl bg-gradient-to-br from-emerald-100 to-emerald-300 relative overflow-hidden cursor-pointer group hover:ring-2 hover:ring-brand-900 transition">
+<div class="absolute inset-0 flex items-center justify-center">
+<i class="w-14 h-14 text-emerald-700" data-lucide="receipt"></i>
+</div>
+<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+<p class="text-xs text-white font-bold">ใบเสียภาษี</p>
+<p class="text-[10px] text-white/70 font-mono">11/11/2568</p>
+</div>
+</div>
+<div class="aspect-square rounded-xl bg-gradient-to-br from-purple-100 to-purple-300 relative overflow-hidden cursor-pointer group hover:ring-2 hover:ring-brand-900 transition">
+<div class="absolute inset-0 flex items-center justify-center">
+<i class="w-14 h-14 text-purple-700" data-lucide="file-text"></i>
+</div>
+<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+<p class="text-xs text-white font-bold">เล่มทะเบียน</p>
+<p class="text-[10px] text-white/70 font-mono">15/01/2566</p>
+</div>
+</div>
+<div class="aspect-square rounded-xl bg-gradient-to-br from-blue-100 to-indigo-300 relative overflow-hidden cursor-pointer group hover:ring-2 hover:ring-brand-900 transition">
+<div class="absolute inset-0 flex items-center justify-center">
+<i class="w-14 h-14 text-indigo-700" data-lucide="shield"></i>
+</div>
+<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+<p class="text-xs text-white font-bold">ประกันชั้น 1</p>
+<p class="text-[10px] text-white/70 font-mono">06/01/2569</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Section: ซ่อมบำรุง -->
+<div>
+<div class="flex items-center justify-between mb-3">
+<h3 class="text-sm font-bold text-slate-900">ซ่อมบำรุง</h3>
+<button class="text-xs font-semibold text-brand-900 hover:underline">ดูทั้งหมด →</button>
+</div>
+<div class="grid grid-cols-5 gap-3">
+<div class="aspect-square rounded-xl bg-gradient-to-br from-amber-100 to-amber-300 relative overflow-hidden cursor-pointer group hover:ring-2 hover:ring-brand-900 transition">
+<div class="absolute inset-0 flex items-center justify-center">
+<i class="w-14 h-14 text-amber-700" data-lucide="wrench"></i>
+</div>
+<div class="absolute top-2 left-2">
+<span class="text-[9px] font-bold bg-white/90 text-slate-700 px-1.5 py-0.5 rounded font-mono">19/04/69</span>
+</div>
+<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+<p class="text-xs text-white font-bold">น้ำมันเครื่อง</p>
+<p class="text-[10px] text-white/70">฿2,850 · 45,000 km</p>
+</div>
+</div>
+<div class="aspect-square rounded-xl bg-gradient-to-br from-red-100 to-red-300 relative overflow-hidden cursor-pointer group hover:ring-2 hover:ring-brand-900 transition">
+<div class="absolute inset-0 flex items-center justify-center">
+<i class="w-14 h-14 text-red-700" data-lucide="circle-dot"></i>
+</div>
+<div class="absolute top-2 left-2">
+<span class="text-[9px] font-bold bg-white/90 text-slate-700 px-1.5 py-0.5 rounded font-mono">14/01/69</span>
+</div>
+<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+<p class="text-xs text-white font-bold">ยาง 2 เส้น</p>
+<p class="text-[10px] text-white/70">฿4,800 · 38,200 km</p>
+</div>
+</div>
+<div class="aspect-square rounded-xl bg-gradient-to-br from-emerald-100 to-emerald-300 relative overflow-hidden cursor-pointer group hover:ring-2 hover:ring-brand-900 transition">
+<div class="absolute inset-0 flex items-center justify-center">
+<i class="w-14 h-14 text-emerald-700" data-lucide="check-circle-2"></i>
+</div>
+<div class="absolute top-2 left-2">
+<span class="text-[9px] font-bold bg-white/90 text-slate-700 px-1.5 py-0.5 rounded font-mono">02/03/69</span>
+</div>
+<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+<p class="text-xs text-white font-bold">เช็กระยะ 40k</p>
+<p class="text-[10px] text-white/70">฿3,500 · 40,150 km</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div></div>
+
+<!-- ===== BOTTOM NAV ===== -->
+<div class="fixed bottom-0 left-0 right-0 ios-blur border-t border-slate-200 px-2 pt-2 pb-2 safe-bottom z-30 mobile-only">
+  <div class="grid grid-cols-4">
+    <button class="flex flex-col items-center gap-0.5 py-1.5 text-slate-400 tap ripple ripple-dark" onclick="location.href='dashboard.html'">
+      <i class="w-5 h-5" data-lucide="house"></i>
+      <span class="text-[10px] font-medium">หน้าแรก</span>
+    </button>
+    <button class="flex flex-col items-center gap-0.5 py-1.5 text-brand-900 nav-item-active tap ripple ripple-dark">
+      <i class="w-5 h-5" data-lucide="car"></i>
+      <span class="text-[10px] font-bold">รถ</span>
+    </button>
+    <button class="flex flex-col items-center gap-0.5 py-1.5 text-slate-400 tap ripple ripple-dark" onclick="location.href='expense.html'">
+      <i class="w-5 h-5" data-lucide="receipt"></i>
+      <span class="text-[10px] font-medium">ค่าใช้จ่าย</span>
+    </button>
+    <button class="flex flex-col items-center gap-0.5 py-1.5 text-slate-400 tap ripple ripple-dark" onclick="openDrawer()">
+      <i class="w-5 h-5" data-lucide="more-horizontal"></i>
+      <span class="text-[10px] font-medium">เพิ่มเติม</span>
+    </button>
+  </div>
+</div>
+
+<!-- ===== SIDE DRAWER ===== -->
+<div id="sideDrawer" class="fixed inset-0 z-50 mobile-only">
+  <div class="absolute inset-0 bg-black/30 backdrop-blur-sm drawer-backdrop" onclick="closeDrawer()"></div>
+  <div class="drawer-panel absolute top-0 left-0 bottom-0 w-[80%] max-w-[300px] bg-white flex flex-col ios-modal-shadow">
+    <div class="px-5 pt-12 pb-5 border-b border-slate-100">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 bg-brand-900 rounded-2xl flex items-center justify-center ios-shadow-2">
+          <i class="w-6 h-6 text-white" data-lucide="truck"></i>
+        </div>
+        <div>
+          <p class="font-bold text-slate-900 text-base leading-tight">Fleet Manager</p>
+          <p class="text-xs text-slate-500 mt-0.5">บริษัท ABC จำกัด</p>
+        </div>
+      </div>
+    </div>
+    <nav class="flex-1 overflow-y-auto p-3 space-y-0.5">
+      <p class="px-3 pt-2 pb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">หลัก</p>
+      <a href="dashboard.html" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm tap ripple text-slate-600 hover:bg-slate-50 font-medium ripple-dark">
+        <i class="w-5 h-5" data-lucide="house"></i>หน้าแรก
+      </a>
+      <a href="vehicles.html" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm tap ripple bg-brand-900 text-white font-bold ripple">
+        <i class="w-5 h-5" data-lucide="car"></i>รถทั้งหมด
+        <span class="ml-auto bg-white/20 text-white text-[10px] font-bold px-1.5 py-0.5 rounded font-mono">50</span>
+      </a>
+      <a href="expense.html" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm tap ripple text-slate-600 hover:bg-slate-50 font-medium ripple-dark">
+        <i class="w-5 h-5" data-lucide="receipt"></i>ค่าใช้จ่าย
+      </a>
+      <p class="px-3 pt-5 pb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">เพิ่มเติม</p>
+      <a href="#" class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-600 hover:bg-slate-50 text-sm font-medium tap ripple ripple-dark">
+        <i class="w-5 h-5" data-lucide="file-text"></i>เอกสาร
+        <span class="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">3</span>
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-600 hover:bg-slate-50 text-sm font-medium tap ripple ripple-dark">
+        <i class="w-5 h-5" data-lucide="wrench"></i>ซ่อมบำรุง
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-600 hover:bg-slate-50 text-sm font-medium tap ripple ripple-dark">
+        <i class="w-5 h-5" data-lucide="chart-column"></i>รายงาน
+      </a>
+      <p class="px-3 pt-5 pb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">ระบบ</p>
+      <a href="permission.html" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm tap ripple text-slate-600 hover:bg-slate-50 font-medium ripple-dark">
+        <i class="w-5 h-5" data-lucide="shield"></i>สิทธิ์การเข้าถึง
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-600 hover:bg-slate-50 text-sm font-medium tap ripple ripple-dark">
+        <i class="w-5 h-5" data-lucide="settings"></i>ตั้งค่า
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-600 hover:bg-slate-50 text-sm font-medium tap ripple ripple-dark">
+        <i class="w-5 h-5" data-lucide="circle-help"></i>ช่วยเหลือ
+      </a>
+    </nav>
+    <div class="border-t border-slate-100 p-3 safe-bottom">
+      <div class="flex items-center gap-3 p-2 rounded-xl tap ripple ripple-dark">
+        <div class="w-10 h-10 bg-brand-900 rounded-full flex items-center justify-center text-white font-bold text-sm">AD</div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-bold text-slate-900 leading-tight">Admin</p>
+          <p class="text-[11px] text-slate-500 truncate">admin@company.co.th</p>
+        </div>
+        <button class="w-8 h-8 hover:bg-slate-100 rounded-lg flex items-center justify-center">
+          <i class="w-4 h-4 text-slate-400" data-lucide="log-out"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Sidebar toggle (desktop only)
+function toggleSidebar() {
+  document.body.classList.toggle('sidebar-collapsed');
+  try {
+    localStorage.setItem('fleet_sidebar_collapsed',
+      document.body.classList.contains('sidebar-collapsed') ? '1' : '0');
+  } catch(e) {}
+  setTimeout(() => lucide.createIcons(), 50);
+}
+// Restore state on load
+(function() {
+  try {
+    if (localStorage.getItem('fleet_sidebar_collapsed') === '1') {
+      document.body.classList.add('sidebar-collapsed');
+    }
+  } catch(e) {}
+})();
+
+
+// Tab switching - syncs both mobile and desktop
+function activateTab(tabName) {
+  document.querySelectorAll('.tab-btn-mobile, .tab-btn-desktop').forEach(btn => {
+    if (btn.dataset.tab === tabName) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+  document.querySelectorAll('.tab-panel').forEach(panel => {
+    if (panel.dataset.tabPanel === tabName) {
+      panel.classList.add('active');
+    } else {
+      panel.classList.remove('active');
+    }
+  });
+  // Re-initialize lucide icons in newly visible content
+  setTimeout(() => lucide.createIcons(), 50);
+}
+
+document.querySelectorAll('.tab-btn-mobile, .tab-btn-desktop').forEach(btn => {
+  btn.addEventListener('click', () => activateTab(btn.dataset.tab));
+});
+
+
+/* ========== SIDE DRAWER ========== */
+function openDrawer() {
+  const drawer = document.getElementById('sideDrawer');
+  if (!drawer) return;
+  drawer.classList.add('show');
+  document.body.classList.add('modal-open');
+  if (navigator.vibrate) try { navigator.vibrate(8); } catch(_) {}
+  setTimeout(() => lucide.createIcons(), 50);
+}
+function closeDrawer() {
+  const drawer = document.getElementById('sideDrawer');
+  if (!drawer) return;
+  drawer.classList.remove('show');
+  document.body.classList.remove('modal-open');
+  if (navigator.vibrate) try { navigator.vibrate(6); } catch(_) {}
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeDrawer();
+});
+(function() {
+  const drawer = document.getElementById('sideDrawer');
+  if (!drawer) return;
+  const panel = drawer.querySelector('.drawer-panel');
+  let startX = 0, currentX = 0, dragging = false;
+  panel.addEventListener('touchstart', (e) => {
+    if (!drawer.classList.contains('show')) return;
+    startX = e.touches[0].clientX; dragging = true;
+    panel.style.transition = 'none';
+  }, { passive: true });
+  panel.addEventListener('touchmove', (e) => {
+    if (!dragging) return;
+    currentX = e.touches[0].clientX;
+    const dx = currentX - startX;
+    if (dx < 0) panel.style.transform = `translateX(${dx}px)`;
+  }, { passive: true });
+  panel.addEventListener('touchend', () => {
+    if (!dragging) return;
+    dragging = false;
+    panel.style.transition = '';
+    const dx = currentX - startX;
+    if (dx < -80) closeDrawer();
+    else panel.style.transform = '';
+  });
+})();
+
+
+/* Ripple effect */
+document.addEventListener('pointerdown', (e) => {
+  const target = e.target.closest('.ripple');
+  if (!target) return;
+  const rect = target.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  const wave = document.createElement('span');
+  wave.className = 'ripple-wave';
+  wave.style.width = wave.style.height = size + 'px';
+  wave.style.left = (e.clientX - rect.left - size / 2) + 'px';
+  wave.style.top = (e.clientY - rect.top - size / 2) + 'px';
+  target.appendChild(wave);
+  if (navigator.vibrate) try { navigator.vibrate(8); } catch(_) {}
+  setTimeout(() => wave.remove(), 600);
+});
+
+lucide.createIcons();
+</script>
+</body>
+</html>

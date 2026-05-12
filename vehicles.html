@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#211e53">
+<title>Fleet Manager — รถทั้งหมด</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>
+tailwind.config = {
+  theme: { extend: {
+    colors: {
+      brand: { 50: '#f4f3f9', 100: '#ebeaf3', 200: '#d2cfe5', 300: '#aaa4cd', 400: '#7d75b0', 500: '#5d5494', 600: '#48417a', 700: '#3b3563', 800: '#332e54', 900: '#211e53', 950: '#15123a' }
+    },
+    fontFamily: {
+      sans: ['Inter', 'Noto Sans Thai', 'system-ui', 'sans-serif'],
+      mono: ['JetBrains Mono', 'monospace']
+    }
+  } }
+}
+</script>
+<style>
+body { font-family: 'Inter', 'Noto Sans Thai', sans-serif; }
+.font-mono { font-family: 'JetBrains Mono', monospace; }
+
+@media (min-width: 1024px) {
+  .mobile-only { display: none !important; }
+}
+@media (max-width: 1023px) {
+  .desktop-only { display: none !important; }
+}
+
+/* === Sidebar === */
+.sidebar {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: 240px;
+  z-index: 40;
+  transition: transform 0.25s ease;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.main-area {
+  margin-left: 240px;
+  transition: margin-left 0.25s ease;
+  min-height: 100vh;
+}
+body.sidebar-collapsed .sidebar { transform: translateX(-100%); }
+body.sidebar-collapsed .main-area { margin-left: 0; }
+body.sidebar-collapsed .toggle-icon { transform: rotate(180deg); }
+.toggle-icon { transition: transform 0.25s ease; display: inline-block; }
+
+/* === Native polish === */
+.tap {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  cursor: pointer;
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+              filter 0.15s ease;
+  will-change: transform;
+}
+.tap:active { transform: scale(0.97); filter: brightness(0.96); }
+.tap-card:active { transform: scale(0.985); }
+
+.ripple { position: relative; overflow: hidden; }
+.ripple-wave {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.4);
+  transform: scale(0);
+  animation: ripple-anim 0.6s ease-out;
+}
+.ripple-dark .ripple-wave { background: rgba(33, 30, 83, 0.15); }
+@keyframes ripple-anim {
+  to { transform: scale(4); opacity: 0; }
+}
+
+/* Skeleton */
+.skel {
+  background: linear-gradient(90deg, #e2e8f0 0%, #f1f5f9 50%, #e2e8f0 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.fade-in { animation: fadeUp 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.stagger > * {
+  opacity: 0;
+  animation: fadeUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.stagger > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger > *:nth-child(2) { animation-delay: 0.10s; }
+.stagger > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger > *:nth-child(4) { animation-delay: 0.20s; }
+.stagger > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger > *:nth-child(6) { animation-delay: 0.30s; }
+.stagger > *:nth-child(7) { animation-delay: 0.35s; }
+
+/* iOS-style blur bottom nav */
+.ios-blur {
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  background-color: rgba(255, 255, 255, 0.85);
+}
+
+.nav-item-active { position: relative; }
+.nav-item-active::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #211e53;
+}
+
+/* iOS-style elevation system */
+.ios-shadow-1 {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 2px 8px -2px rgba(0, 0, 0, 0.06);
+}
+.ios-shadow-2 {
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.05),
+    0 4px 12px -2px rgba(0, 0, 0, 0.08);
+}
+.ios-shadow-3 {
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.06),
+    0 8px 24px -4px rgba(0, 0, 0, 0.10);
+}
+.ios-modal-shadow {
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.08),
+    0 24px 64px -16px rgba(0, 0, 0, 0.20);
+}
+
+/* Subtle elevation pulse for urgent card - lifts up subtly, NOT a colored glow */
+@keyframes soft-pulse {
+  0%, 100% {
+    box-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.05),
+      0 4px 12px -2px rgba(0, 0, 0, 0.08);
+  }
+  50% {
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.06),
+      0 12px 28px -4px rgba(0, 0, 0, 0.14);
+  }
+}
+.pulse-red { animation: soft-pulse 2.5s ease-in-out infinite; }
+.stagger > .pulse-red {
+  animation: fadeUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards,
+             soft-pulse 2.5s ease-in-out infinite;
+}
+.stagger > *:nth-child(1).pulse-red { animation-delay: 0.05s, 0.55s; }
+
+.safe-bottom { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+html { scroll-behavior: smooth; }
+
+/* ============================================== */
+/* === FILTER MODAL                            === */
+/* ============================================== */
+#filterModal {
+  visibility: hidden;
+  pointer-events: none;
+}
+#filterModal.show {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+#filterModal .modal-backdrop {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+#filterModal.show .modal-backdrop {
+  opacity: 1;
+}
+
+/* Mobile: slide up from bottom */
+#filterModal .modal-content-mobile {
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+#filterModal.show .modal-content-mobile {
+  transform: translateY(0);
+}
+
+/* Desktop: scale + fade */
+#filterModal .modal-content-desktop {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.96);
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+#filterModal.show .modal-content-desktop {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* Filter pill active state */
+.filter-pill.active {
+  border-color: #211e53 !important;
+  background-color: #f4f3f9 !important;
+  color: #211e53 !important;
+  font-weight: 700 !important;
+}
+
+/* Lock body when modal open */
+body.modal-open { overflow: hidden; }
+
+/* ============================================== */
+/* === SIDE DRAWER (mobile, iOS slide-in)      === */
+/* ============================================== */
+#sideDrawer {
+  visibility: hidden;
+  pointer-events: none;
+}
+#sideDrawer.show {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+#sideDrawer .drawer-backdrop {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+#sideDrawer.show .drawer-backdrop {
+  opacity: 1;
+}
+
+#sideDrawer .drawer-panel {
+  transform: translateX(-100%);
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+#sideDrawer.show .drawer-panel {
+  transform: translateX(0);
+}
+</style>
+</head>
+<body class="bg-slate-50">
+
+<!-- ============================================================ -->
+<!-- MOBILE VIEW                                                  -->
+<!-- ============================================================ -->
+<div class="mobile-only min-h-screen relative bg-slate-50" id="mobile-content">
+
+  <!-- Header -->
+  <div class="bg-white px-5 pt-3 pb-3 border-b border-slate-100">
+    <div class="mb-3">
+      <h1 class="text-lg font-bold text-slate-900">รถทั้งหมด <span class="text-slate-400 font-mono text-base">50</span></h1>
+    </div>
+    <div class="relative">
+      <i class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" data-lucide="search"></i>
+      <input class="w-full bg-slate-100 border-0 rounded-xl pl-10 pr-12 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-brand-900/20 focus:outline-none transition" placeholder="ค้นหาทะเบียน, ยี่ห้อ, ผู้ใช้..."/>
+      <button class="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-white rounded-lg flex items-center justify-center tap ripple ripple-dark" onclick="openFilterModal()">
+        <i class="w-3.5 h-3.5 text-slate-600" data-lucide="sliders-horizontal"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Filter chips -->
+  <!-- <div class="bg-white px-5 pb-3 no-scrollbar overflow-x-auto">
+    <div class="flex gap-2 min-w-max">
+      <button class="px-3.5 py-1.5 rounded-full bg-brand-900 text-white text-xs font-bold whitespace-nowrap tap ripple">ทั้งหมด · 50</button>
+      <button class="px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-medium whitespace-nowrap flex items-center gap-1.5 tap ripple ripple-dark">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>ใช้งาน · 42
+      </button>
+      <button class="px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-medium whitespace-nowrap flex items-center gap-1.5 tap ripple ripple-dark">
+        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>ซ่อม · 5
+      </button>
+      <button class="px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-medium whitespace-nowrap flex items-center gap-1.5 tap ripple ripple-dark">
+        <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>ว่าง · 3
+      </button>
+    </div>
+  </div> -->
+
+  <!-- Vehicle list -->
+  <div class="px-5 py-4 space-y-3 pb-24 stagger">
+
+    <!-- ===== Card 1: URGENT ===== -->
+    <div class="bg-white rounded-2xl overflow-hidden border border-slate-100 pulse-red tap-card tap ripple ripple-dark cursor-pointer relative" onclick="location.href='vehicle-detail.html'">
+      <!-- Left accent bar (in-card) -->
+      <div class="absolute left-0 top-0 bottom-0 w-1 bg-red-500 z-20"></div>
+      <div class="flex">
+        <!-- Photo (1/3 width) -->
+        <div class="w-32 h-32 flex-shrink-0 relative bg-slate-100 overflow-hidden">
+          <img src="http://203.151.27.229:8117/fleet/photo-155.png" alt="Toyota Vios 1กข-1234" class="w-full h-full object-cover" loading="lazy"/>
+          <!-- Pulse dot top-right of photo -->
+          <span class="absolute top-2 right-2 flex h-2.5 w-2.5">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-600 ring-2 ring-white"></span>
+          </span>
+        </div>
+        <!-- Content (2/3 width) -->
+        <div class="flex-1 min-w-0 p-3.5 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-mono font-extrabold text-base text-slate-900">1กข-1234</span>
+              <span class="text-[10px] font-bold bg-red-600 text-white px-2 py-0.5 rounded-full whitespace-nowrap">● ด่วน</span>
+            </div>
+            <p class="text-sm font-semibold text-slate-700 mt-1">Toyota Vios <span class="text-slate-400 font-normal">· 2023</span></p>
+            <div class="flex items-center gap-3 mt-1.5 text-[11px] text-slate-500">
+              <span class="flex items-center gap-1"><i class="w-3 h-3" data-lucide="user"></i>สมชาย</span>
+              <span class="flex items-center gap-1"><i class="w-3 h-3" data-lucide="gauge"></i><span class="font-mono">45,230</span> km</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Alert footer -->
+      <div class="bg-red-50 px-3.5 py-2 flex items-center justify-between border-t border-red-100">
+        <span class="text-xs text-red-700 font-bold flex items-center gap-1.5">
+          <i class="w-3.5 h-3.5" data-lucide="alert-triangle"></i>พ.ร.บ. หมดใน 7 วัน
+        </span>
+        <span class="text-xs font-bold text-red-700 flex items-center gap-0.5">
+          ดู <i class="w-3 h-3" data-lucide="chevron-right"></i>
+        </span>
+      </div>
+    </div>
+
+    <!-- ===== Card 2: MAINTENANCE ===== -->
+    <div class="bg-white rounded-2xl overflow-hidden border border-slate-100 ios-shadow-2 tap-card tap ripple ripple-dark cursor-pointer relative" onclick="location.href='vehicle-detail.html'">
+      <!-- Left accent bar -->
+      <div class="absolute left-0 top-0 bottom-0 w-1 bg-amber-500 z-20"></div>
+      <div class="flex">
+        <div class="w-32 h-32 flex-shrink-0 bg-slate-100 overflow-hidden">
+          <img src="http://203.151.27.229:8117/fleet/photo-155.png" alt="Isuzu D-Max 2ขค-5678" class="w-full h-full object-cover" loading="lazy"/>
+        </div>
+        <div class="flex-1 min-w-0 p-3.5 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-mono font-extrabold text-base text-slate-900">2ขค-5678</span>
+              <span class="text-[10px] font-bold bg-amber-500 text-white px-2 py-0.5 rounded-full whitespace-nowrap">● ซ่อม</span>
+            </div>
+            <p class="text-sm font-semibold text-slate-700 mt-1">Isuzu D-Max <span class="text-slate-400 font-normal">· 2022</span></p>
+            <div class="flex items-center gap-3 mt-1.5 text-[11px] text-slate-500">
+              <span class="flex items-center gap-1"><i class="w-3 h-3" data-lucide="user"></i>วิภา</span>
+              <span class="flex items-center gap-1"><i class="w-3 h-3" data-lucide="gauge"></i><span class="font-mono">78,450</span> km</span>
+            </div>
+          </div>
+          <div class="text-[11px] text-amber-700 font-semibold flex items-center gap-1 mt-2">
+            <i class="w-3 h-3" data-lucide="clock"></i>รออะไหล่ · 3 วัน
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Card 3: ACTIVE ===== -->
+    <div class="bg-white rounded-2xl overflow-hidden border border-slate-100 ios-shadow-1 tap-card tap ripple ripple-dark cursor-pointer relative" onclick="location.href='vehicle-detail.html'">
+      <div class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500/60 z-20"></div>
+      <div class="flex">
+        <div class="w-32 h-32 flex-shrink-0 bg-slate-100 overflow-hidden">
+          <img src="http://203.151.27.229:8117/fleet/photo-155.png" alt="รถใช้งาน" class="w-full h-full object-cover" loading="lazy"/>
+        </div>
+        <div class="flex-1 min-w-0 p-3.5 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-mono font-extrabold text-base text-slate-900">3คง-9012</span>
+              <span class="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full whitespace-nowrap">● ใช้งาน</span>
+            </div>
+            <p class="text-sm font-semibold text-slate-700 mt-1">Honda City <span class="text-slate-400 font-normal">· 2024</span></p>
+            <div class="flex items-center gap-3 mt-1.5 text-[11px] text-slate-500">
+              <span class="flex items-center gap-1"><i class="w-3 h-3" data-lucide="user"></i>ประสิทธิ์</span>
+              <span class="flex items-center gap-1"><i class="w-3 h-3" data-lucide="gauge"></i><span class="font-mono">12,890</span> km</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Card 4: ACTIVE ===== -->
+    <div class="bg-white rounded-2xl overflow-hidden border border-slate-100 ios-shadow-1 tap-card tap ripple ripple-dark cursor-pointer relative" onclick="location.href='vehicle-detail.html'">
+      <div class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500/60 z-20"></div>
+      <div class="flex">
+        <div class="w-32 h-32 flex-shrink-0 bg-slate-100 overflow-hidden">
+          <img src="http://203.151.27.229:8117/fleet/photo-155.png" alt="รถใช้งาน" class="w-full h-full object-cover" loading="lazy"/>
+        </div>
+        <div class="flex-1 min-w-0 p-3.5 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-mono font-extrabold text-base text-slate-900">5จฉ-7890</span>
+              <span class="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full whitespace-nowrap">● ใช้งาน</span>
+            </div>
+            <p class="text-sm font-semibold text-slate-700 mt-1">Mazda 2 <span class="text-slate-400 font-normal">· 2023</span></p>
+            <div class="flex items-center gap-3 mt-1.5 text-[11px] text-slate-500">
+              <span class="flex items-center gap-1"><i class="w-3 h-3" data-lucide="user"></i>นพดล</span>
+              <span class="flex items-center gap-1"><i class="w-3 h-3" data-lucide="gauge"></i><span class="font-mono">32,180</span> km</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Card 5: ACTIVE ===== -->
+    <div class="bg-white rounded-2xl overflow-hidden border border-slate-100 ios-shadow-1 tap-card tap ripple ripple-dark cursor-pointer relative" onclick="location.href='vehicle-detail.html'">
+      <div class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500/60 z-20"></div>
+      <div class="flex">
+        <div class="w-32 h-32 flex-shrink-0 bg-slate-100 overflow-hidden">
+          <img src="http://203.151.27.229:8117/fleet/photo-155.png" alt="รถใช้งาน" class="w-full h-full object-cover" loading="lazy"/>
+        </div>
+        <div class="flex-1 min-w-0 p-3.5 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-mono font-extrabold text-base text-slate-900">6ฉช-1122</span>
+              <span class="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full whitespace-nowrap">● ใช้งาน</span>
+            </div>
+            <p class="text-sm font-semibold text-slate-700 mt-1">Toyota Camry <span class="text-slate-400 font-normal">· 2023</span></p>
+            <div class="flex items-center gap-3 mt-1.5 text-[11px] text-slate-500">
+              <span class="flex items-center gap-1"><i class="w-3 h-3" data-lucide="user"></i>วิภา</span>
+              <span class="flex items-center gap-1"><i class="w-3 h-3" data-lucide="gauge"></i><span class="font-mono">8,920</span> km</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Card 6: IDLE ===== -->
+    <div class="bg-white/80 rounded-2xl overflow-hidden border border-slate-100 ios-shadow-1 tap-card tap ripple ripple-dark cursor-pointer relative" onclick="location.href='vehicle-detail.html'">
+      <div class="absolute left-0 top-0 bottom-0 w-1 bg-slate-300 z-20"></div>
+      <div class="flex">
+        <div class="w-32 h-32 flex-shrink-0 bg-slate-100 overflow-hidden grayscale opacity-75">
+          <img src="http://203.151.27.229:8117/fleet/photo-155.png" alt="Toyota Hilux 4งจ-3456" class="w-full h-full object-cover" loading="lazy"/>
+        </div>
+        <div class="flex-1 min-w-0 p-3.5 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-mono font-extrabold text-base text-slate-900">4งจ-3456</span>
+              <span class="text-[10px] font-bold bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full whitespace-nowrap">● ว่าง</span>
+            </div>
+            <p class="text-sm font-semibold text-slate-700 mt-1">Toyota Hilux <span class="text-slate-400 font-normal">· 2021</span></p>
+            <div class="flex items-center gap-3 mt-1.5 text-[11px] text-slate-400">
+              <span class="flex items-center gap-1 italic"><i class="w-3 h-3" data-lucide="user-x"></i>ไม่ได้กำหนด</span>
+              <span class="flex items-center gap-1"><i class="w-3 h-3" data-lucide="gauge"></i><span class="font-mono">120,560</span> km</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Load more button -->
+    <button class="w-full py-3 text-center text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl tap">
+      ดูเพิ่มอีก <span class="font-mono">44</span> คัน →
+    </button>
+  </div>
+
+  <button class="fixed bottom-24 right-5 w-14 h-14 bg-brand-900 rounded-full shadow-2xl shadow-brand-900/30 flex items-center justify-center z-30">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="plus" aria-hidden="true" class="lucide lucide-plus w-6 h-6 text-white"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+</button>
+
+  <!-- Bottom nav -->
+  <div class="fixed bottom-0 left-0 right-0 ios-blur border-t border-slate-200 px-2 pt-2 pb-2 safe-bottom z-30">
+    <div class="grid grid-cols-4">
+      <button class="flex flex-col items-center gap-0.5 py-1.5 text-slate-400 tap ripple ripple-dark rounded-lg" onclick="location.href='dashboard.html'">
+        <i class="w-5 h-5" data-lucide="house"></i>
+        <span class="text-[10px] font-medium">หน้าแรก</span>
+      </button>
+      <button class="flex flex-col items-center gap-0.5 py-1.5 text-brand-900 tap ripple ripple-dark rounded-lg nav-item-active">
+        <i class="w-5 h-5" data-lucide="truck"></i>
+        <span class="text-[10px] font-bold">รถ</span>
+      </button>
+      <button class="flex flex-col items-center gap-0.5 py-1.5 text-slate-400 tap ripple ripple-dark rounded-lg" onclick="location.href='expense.html'">
+        <i class="w-5 h-5" data-lucide="receipt"></i>
+        <span class="text-[10px] font-medium">ค่าใช้จ่าย</span>
+      </button>
+      <button class="flex flex-col items-center gap-0.5 py-1.5 text-slate-400 tap ripple ripple-dark rounded-lg" onclick="openDrawer()">
+        <i class="w-5 h-5" data-lucide="more-horizontal"></i>
+        <span class="text-[10px] font-medium">เพิ่มเติม</span>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================================ -->
+<!-- DESKTOP VIEW                                                 -->
+<!-- ============================================================ -->
+<div class="desktop-only min-h-screen bg-slate-50">
+
+  <aside class="bg-white border-r border-slate-200 sidebar">
+    <div class="p-5 border-b border-slate-100 flex items-center gap-2.5 cursor-pointer" onclick="location.href='dashboard.html'">
+      <div class="w-9 h-9 bg-brand-900 rounded-lg flex items-center justify-center"><i class="w-5 h-5 text-white" data-lucide="truck"></i></div>
+      <div><div class="font-bold text-slate-900 text-sm">Fleet Manager</div><div class="text-[10px] text-slate-500">บริษัท ABC</div></div>
+    </div>
+    <nav class="flex-1 p-3 space-y-0.5">
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 text-sm font-medium" href="dashboard.html"><i class="w-4 h-4" data-lucide="layout-dashboard"></i>Dashboard</a>
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-brand-900 text-white text-sm font-semibold" href="vehicles.html"><i class="w-4 h-4" data-lucide="truck"></i>รถทั้งหมด<span class="ml-auto bg-white/20 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">50</span></a>
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 text-sm font-medium" href="expense.html"><i class="w-4 h-4" data-lucide="receipt"></i>ค่าใช้จ่าย</a>
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 text-sm font-medium"><i class="w-4 h-4" data-lucide="file-text"></i>เอกสาร</a>
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 text-sm font-medium"><i class="w-4 h-4" data-lucide="wrench"></i>ซ่อมบำรุง</a>
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 text-sm font-medium"><i class="w-4 h-4" data-lucide="bar-chart-3"></i>รายงาน</a>
+    </nav>
+  </aside>
+
+  <div class="main-area" id="desktop-content">
+    <header class="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button class="w-9 h-9 hover:bg-slate-100 rounded-lg flex items-center justify-center text-slate-600 tap ripple ripple-dark" onclick="toggleSidebar()" title="ซ่อน/แสดงเมนู">
+          <span class="toggle-icon"><i class="w-4 h-4" data-lucide="panel-left"></i></span>
+        </button>
+        <div>
+          <div class="flex items-center gap-2 text-xs text-slate-500 mb-1"><span>Fleet</span><i class="w-3 h-3" data-lucide="chevron-right"></i><span class="text-slate-900 font-medium">รถทั้งหมด</span></div>
+          <h1 class="text-xl font-bold text-slate-900">รถทั้งหมด <span class="text-slate-400 font-mono">(50)</span></h1>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button class="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 flex items-center gap-2 hover:bg-slate-50 tap ripple ripple-dark"><i class="w-4 h-4" data-lucide="download"></i>Export</button>
+      </div>
+    </header>
+
+    <div class="p-8">
+      <!-- KPI summary like dashboard -->
+      <div class="grid grid-cols-4 gap-4 mb-6 stagger">
+        <div class="bg-white rounded-xl border border-slate-200 p-5 tap-card tap ripple ripple-dark cursor-pointer">
+          <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 bg-brand-900 rounded-lg flex items-center justify-center">
+              <i class="w-5 h-5 text-white" data-lucide="truck"></i>
+            </div>
+            <span class="text-[10px] font-bold text-brand-900 uppercase tracking-wider">ทั้งหมด</span>
+          </div>
+          <div class="text-3xl font-extrabold text-slate-900">50</div>
+          <div class="text-xs text-slate-500 mt-1">รถในบริษัท</div>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-5 tap-card tap ripple ripple-dark cursor-pointer">
+          <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
+              <i class="w-5 h-5 text-white" data-lucide="check"></i>
+            </div>
+            <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">84%</span>
+          </div>
+          <div class="text-3xl font-extrabold text-slate-900">42</div>
+          <div class="text-xs text-slate-500 mt-1">ใช้งานอยู่</div>
+        </div>
+        <div class="bg-amber-500 rounded-xl p-5 relative overflow-hidden ios-shadow-3 tap-card tap ripple cursor-pointer">
+          <div class="absolute -right-6 -bottom-6 w-28 h-28 rounded-full bg-white/10"></div>
+          <div class="flex items-center justify-between mb-3 relative">
+            <div class="w-10 h-10 bg-white/20 backdrop-blur rounded-lg flex items-center justify-center">
+              <i class="w-5 h-5 text-white" data-lucide="wrench"></i>
+            </div>
+            <span class="text-[10px] font-bold text-white uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full">ซ่อม</span>
+          </div>
+          <div class="text-3xl font-extrabold text-white relative">5</div>
+          <div class="text-xs text-amber-50 mt-1 font-semibold relative">รออะไหล่ 2 คัน</div>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-5 tap-card tap ripple ripple-dark cursor-pointer">
+          <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 bg-slate-200 rounded-lg flex items-center justify-center">
+              <i class="w-5 h-5 text-slate-600" data-lucide="circle-slash"></i>
+            </div>
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">ว่าง</span>
+          </div>
+          <div class="text-3xl font-extrabold text-slate-900">3</div>
+          <div class="text-xs text-slate-500 mt-1">พร้อมใช้งาน</div>
+        </div>
+      </div>
+
+      <!-- Filter row -->
+      <div class="bg-white rounded-xl border border-slate-200 p-4 mb-4">
+        <div class="flex items-center gap-3 flex-wrap">
+          <div class="relative flex-1 min-w-64">
+            <i class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" data-lucide="search"></i>
+            <input class="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-sm focus:bg-white focus:ring-2 focus:ring-brand-900/20 focus:outline-none transition" placeholder="ค้นหาทะเบียน, ยี่ห้อ, ผู้ใช้..."/>
+          </div>
+          <button class="border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white tap ripple ripple-dark flex items-center gap-2 hover:bg-slate-50 font-medium text-slate-700" onclick="openFilterModal()">
+            <i class="w-4 h-4" data-lucide="sliders-horizontal"></i>ตัวกรอง
+            <span class="ml-1 bg-brand-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full font-mono">2</span>
+          </button>
+          <button class="text-xs font-semibold text-slate-500 hover:text-slate-900 tap">ล้างตัวกรอง</button>
+        </div>
+      </div>
+
+      <!-- Vehicle table (desktop) -->
+      <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+            <tr>
+              <th class="px-5 py-3 w-10"><input type="checkbox" class="accent-brand-900 rounded"/></th>
+              <th class="px-5 py-3">ทะเบียน <i class="w-3 h-3 inline ml-1" data-lucide="arrow-up-down"></i></th>
+              <th class="px-5 py-3">ยี่ห้อ / รุ่น</th>
+              <th class="px-5 py-3">ปี</th>
+              <th class="px-5 py-3">สถานะ</th>
+              <th class="px-5 py-3">ผู้ใช้</th>
+              <th class="px-5 py-3 text-right">เลขไมล์</th>
+              <th class="px-5 py-3">เอกสาร</th>
+              <th class="px-5 py-3 w-10"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 stagger">
+
+            <!-- URGENT row -->
+            <tr class="hover:bg-slate-50 cursor-pointer tap ripple ripple-dark relative" onclick="location.href='vehicle-detail.html'">
+              <td class="px-5 py-3 relative">
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>
+                <input type="checkbox" class="accent-brand-900 rounded" onclick="event.stopPropagation()"/>
+              </td>
+              <td class="px-5 py-3 font-mono font-extrabold text-slate-900">1กข-1234</td>
+              <td class="px-5 py-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 bg-red-100 rounded flex items-center justify-center"><i class="w-3.5 h-3.5 text-red-700" data-lucide="car"></i></div>
+                  Toyota Vios
+                </div>
+              </td>
+              <td class="px-5 py-3 text-slate-600 font-mono">2023</td>
+              <td class="px-5 py-3"><span class="inline-flex items-center gap-1.5 text-[11px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>ใช้งาน</span></td>
+              <td class="px-5 py-3 text-slate-700">สมชาย ใจดี</td>
+              <td class="px-5 py-3 text-right font-mono text-slate-700">45,230</td>
+              <td class="px-5 py-3"><span class="inline-flex items-center gap-1 text-[11px] font-bold bg-red-600 text-white px-2 py-0.5 rounded-full"><i class="w-3 h-3" data-lucide="alert-triangle"></i>พ.ร.บ. 7 วัน</span></td>
+              <td class="px-5 py-3"><i class="w-4 h-4 text-slate-400" data-lucide="chevron-right"></i></td>
+            </tr>
+
+            <!-- MAINTENANCE row -->
+            <tr class="hover:bg-slate-50 cursor-pointer tap ripple ripple-dark relative" onclick="location.href='vehicle-detail.html'">
+              <td class="px-5 py-3 relative">
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-amber-500"></div>
+                <input type="checkbox" class="accent-brand-900 rounded" onclick="event.stopPropagation()"/>
+              </td>
+              <td class="px-5 py-3 font-mono font-extrabold text-slate-900">2ขค-5678</td>
+              <td class="px-5 py-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 bg-amber-100 rounded flex items-center justify-center"><i class="w-3.5 h-3.5 text-amber-700" data-lucide="truck"></i></div>
+                  Isuzu D-Max
+                </div>
+              </td>
+              <td class="px-5 py-3 text-slate-600 font-mono">2022</td>
+              <td class="px-5 py-3"><span class="inline-flex items-center gap-1.5 text-[11px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>ซ่อม</span></td>
+              <td class="px-5 py-3 text-slate-700">วิภา พงษ์</td>
+              <td class="px-5 py-3 text-right font-mono text-slate-700">78,450</td>
+              <td class="px-5 py-3 text-[11px] text-amber-700 font-semibold">รออะไหล่ · 3 วัน</td>
+              <td class="px-5 py-3"><i class="w-4 h-4 text-slate-400" data-lucide="chevron-right"></i></td>
+            </tr>
+
+            <!-- ACTIVE row 1 -->
+            <tr class="hover:bg-slate-50 cursor-pointer tap ripple ripple-dark relative" onclick="location.href='vehicle-detail.html'">
+              <td class="px-5 py-3 relative">
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
+                <input type="checkbox" class="accent-brand-900 rounded" onclick="event.stopPropagation()"/>
+              </td>
+              <td class="px-5 py-3 font-mono font-extrabold text-slate-900">3คง-9012</td>
+              <td class="px-5 py-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 bg-emerald-100 rounded flex items-center justify-center"><i class="w-3.5 h-3.5 text-emerald-700" data-lucide="car"></i></div>
+                  Honda City
+                </div>
+              </td>
+              <td class="px-5 py-3 text-slate-600 font-mono">2024</td>
+              <td class="px-5 py-3"><span class="inline-flex items-center gap-1.5 text-[11px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>ใช้งาน</span></td>
+              <td class="px-5 py-3 text-slate-700">ประสิทธิ์ มี</td>
+              <td class="px-5 py-3 text-right font-mono text-slate-700">12,890</td>
+              <td class="px-5 py-3 text-[11px] text-slate-400">—</td>
+              <td class="px-5 py-3"><i class="w-4 h-4 text-slate-400" data-lucide="chevron-right"></i></td>
+            </tr>
+
+            <!-- ACTIVE row 2 -->
+            <tr class="hover:bg-slate-50 cursor-pointer tap ripple ripple-dark relative" onclick="location.href='vehicle-detail.html'">
+              <td class="px-5 py-3 relative">
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
+                <input type="checkbox" class="accent-brand-900 rounded" onclick="event.stopPropagation()"/>
+              </td>
+              <td class="px-5 py-3 font-mono font-extrabold text-slate-900">5จฉ-7890</td>
+              <td class="px-5 py-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 bg-emerald-100 rounded flex items-center justify-center"><i class="w-3.5 h-3.5 text-emerald-700" data-lucide="car"></i></div>
+                  Mazda 2
+                </div>
+              </td>
+              <td class="px-5 py-3 text-slate-600 font-mono">2023</td>
+              <td class="px-5 py-3"><span class="inline-flex items-center gap-1.5 text-[11px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>ใช้งาน</span></td>
+              <td class="px-5 py-3 text-slate-700">นพดล ก.</td>
+              <td class="px-5 py-3 text-right font-mono text-slate-700">32,180</td>
+              <td class="px-5 py-3 text-[11px] text-slate-400">—</td>
+              <td class="px-5 py-3"><i class="w-4 h-4 text-slate-400" data-lucide="chevron-right"></i></td>
+            </tr>
+
+            <!-- ACTIVE row 3 -->
+            <tr class="hover:bg-slate-50 cursor-pointer tap ripple ripple-dark relative" onclick="location.href='vehicle-detail.html'">
+              <td class="px-5 py-3 relative">
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
+                <input type="checkbox" class="accent-brand-900 rounded" onclick="event.stopPropagation()"/>
+              </td>
+              <td class="px-5 py-3 font-mono font-extrabold text-slate-900">6ฉช-1122</td>
+              <td class="px-5 py-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 bg-emerald-100 rounded flex items-center justify-center"><i class="w-3.5 h-3.5 text-emerald-700" data-lucide="car"></i></div>
+                  Toyota Camry
+                </div>
+              </td>
+              <td class="px-5 py-3 text-slate-600 font-mono">2023</td>
+              <td class="px-5 py-3"><span class="inline-flex items-center gap-1.5 text-[11px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>ใช้งาน</span></td>
+              <td class="px-5 py-3 text-slate-700">วิภา พงษ์</td>
+              <td class="px-5 py-3 text-right font-mono text-slate-700">8,920</td>
+              <td class="px-5 py-3 text-[11px] text-slate-400">—</td>
+              <td class="px-5 py-3"><i class="w-4 h-4 text-slate-400" data-lucide="chevron-right"></i></td>
+            </tr>
+
+            <!-- IDLE row -->
+            <tr class="hover:bg-slate-50 cursor-pointer tap ripple ripple-dark relative opacity-90" onclick="location.href='vehicle-detail.html'">
+              <td class="px-5 py-3 relative">
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-slate-300"></div>
+                <input type="checkbox" class="accent-brand-900 rounded" onclick="event.stopPropagation()"/>
+              </td>
+              <td class="px-5 py-3 font-mono font-extrabold text-slate-900">4งจ-3456</td>
+              <td class="px-5 py-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 bg-slate-100 rounded flex items-center justify-center"><i class="w-3.5 h-3.5 text-slate-500" data-lucide="truck"></i></div>
+                  Toyota Hilux
+                </div>
+              </td>
+              <td class="px-5 py-3 text-slate-600 font-mono">2021</td>
+              <td class="px-5 py-3"><span class="inline-flex items-center gap-1.5 text-[11px] font-bold bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full"><span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>ว่าง</span></td>
+              <td class="px-5 py-3 text-slate-400 italic">ไม่ได้กำหนด</td>
+              <td class="px-5 py-3 text-right font-mono text-slate-700">120,560</td>
+              <td class="px-5 py-3 text-[11px] text-slate-400">—</td>
+              <td class="px-5 py-3"><i class="w-4 h-4 text-slate-400" data-lucide="chevron-right"></i></td>
+            </tr>
+
+          </tbody>
+        </table>
+      </div>
+
+
+      <!-- Pagination -->
+      <div class="mt-6 flex items-center justify-between">
+        <p class="text-xs text-slate-500">แสดง 1-6 จาก 50 คัน</p>
+        <div class="flex items-center gap-1">
+          <button class="px-2 py-1 hover:bg-slate-100 rounded tap ripple ripple-dark">←</button>
+          <button class="px-2.5 py-1 bg-brand-900 text-white rounded font-bold tap ripple">1</button>
+          <button class="px-2.5 py-1 hover:bg-slate-100 rounded tap ripple ripple-dark">2</button>
+          <button class="px-2.5 py-1 hover:bg-slate-100 rounded tap ripple ripple-dark">3</button>
+          <span>...</span>
+          <button class="px-2.5 py-1 hover:bg-slate-100 rounded tap ripple ripple-dark">9</button>
+          <button class="px-2 py-1 hover:bg-slate-100 rounded tap ripple ripple-dark">→</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- FILTER MODAL (mobile = bottom sheet, desktop = center dialog) -->
+<!-- ============================================================ -->
+<div id="filterModal" class="fixed inset-0 z-50 hidden">
+  <!-- Backdrop -->
+  <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm modal-backdrop" onclick="closeFilterModal()"></div>
+
+  <!-- Mobile bottom sheet -->
+  <div class="modal-content-mobile mobile-only absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[85vh] ios-modal-shadow flex flex-col">
+    <!-- Drag handle -->
+    <div class="pt-3 pb-1 flex justify-center">
+      <div class="w-10 h-1 bg-slate-300 rounded-full"></div>
+    </div>
+
+    <!-- Header -->
+    <div class="px-5 py-3 flex items-center justify-between border-b border-slate-100">
+      <h2 class="text-lg font-bold text-slate-900">ตัวกรอง</h2>
+      <button onclick="closeFilterModal()" class="w-9 h-9 bg-slate-100 hover:bg-slate-200 rounded-full flex items-center justify-center tap">
+        <i class="w-4 h-4 text-slate-700" data-lucide="x"></i>
+      </button>
+    </div>
+
+    <!-- Filter content (scrollable) -->
+    <div class="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+
+      <!-- Status filter -->
+      <div>
+        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">สถานะ</label>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+          <button class="filter-pill px-3 py-2.5 rounded-xl border-2 border-brand-900 bg-brand-50 text-brand-900 text-sm font-bold flex items-center justify-center gap-2 tap ripple ripple-dark">
+            <i class="w-4 h-4" data-lucide="check"></i>ทั้งหมด
+          </button>
+          <button class="filter-pill px-3 py-2.5 rounded-xl border-2 border-slate-200 bg-white text-slate-700 text-sm font-medium flex items-center justify-center gap-2 tap ripple ripple-dark">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>ใช้งาน
+          </button>
+          <button class="filter-pill px-3 py-2.5 rounded-xl border-2 border-slate-200 bg-white text-slate-700 text-sm font-medium flex items-center justify-center gap-2 tap ripple ripple-dark">
+            <span class="w-2 h-2 rounded-full bg-amber-500"></span>ซ่อม
+          </button>
+          <button class="filter-pill px-3 py-2.5 rounded-xl border-2 border-slate-200 bg-white text-slate-700 text-sm font-medium flex items-center justify-center gap-2 tap ripple ripple-dark">
+            <span class="w-2 h-2 rounded-full bg-slate-400"></span>ว่าง
+          </button>
+        </div>
+      </div>
+
+      <!-- Vehicle type -->
+      <div>
+        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">ประเภทรถ</label>
+        <div class="flex gap-2 mt-2 no-scrollbar overflow-x-auto pb-1">
+          <button class="filter-pill flex-shrink-0 px-4 py-2 rounded-full border-2 border-brand-900 bg-brand-50 text-brand-900 text-xs font-bold whitespace-nowrap tap ripple ripple-dark">ทั้งหมด</button>
+          <button class="filter-pill flex-shrink-0 px-4 py-2 rounded-full border-2 border-slate-200 bg-white text-slate-700 text-xs font-medium whitespace-nowrap tap ripple ripple-dark">รถเก๋ง</button>
+          <button class="filter-pill flex-shrink-0 px-4 py-2 rounded-full border-2 border-slate-200 bg-white text-slate-700 text-xs font-medium whitespace-nowrap tap ripple ripple-dark">รถกระบะ</button>
+          <button class="filter-pill flex-shrink-0 px-4 py-2 rounded-full border-2 border-slate-200 bg-white text-slate-700 text-xs font-medium whitespace-nowrap tap ripple ripple-dark">SUV</button>
+          <button class="filter-pill flex-shrink-0 px-4 py-2 rounded-full border-2 border-slate-200 bg-white text-slate-700 text-xs font-medium whitespace-nowrap tap ripple ripple-dark">รถตู้</button>
+          <button class="filter-pill flex-shrink-0 px-4 py-2 rounded-full border-2 border-slate-200 bg-white text-slate-700 text-xs font-medium whitespace-nowrap tap ripple ripple-dark">รถบรรทุก</button>
+        </div>
+      </div>
+
+      <!-- User filter -->
+      <div>
+        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">ผู้ใช้</label>
+        <select class="w-full mt-2 border border-slate-200 rounded-xl px-3 py-3 text-sm bg-white focus:ring-2 focus:ring-brand-900/20 focus:outline-none">
+          <option>ทั้งหมด</option>
+          <option>สมชาย ใจดี</option>
+          <option>วิภา พงษ์</option>
+          <option>ประสิทธิ์ มี</option>
+          <option>นพดล ก.</option>
+          <option>ไม่ได้กำหนด</option>
+        </select>
+      </div>
+
+      <!-- Year range -->
+      <div>
+        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">ปีรถ</label>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+          <select class="border border-slate-200 rounded-xl px-3 py-3 text-sm bg-white focus:ring-2 focus:ring-brand-900/20 focus:outline-none">
+            <option>ตั้งแต่: 2018</option>
+          </select>
+          <select class="border border-slate-200 rounded-xl px-3 py-3 text-sm bg-white focus:ring-2 focus:ring-brand-900/20 focus:outline-none">
+            <option>ถึง: 2024</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Document status -->
+      <div>
+        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">เอกสาร</label>
+        <div class="space-y-2 mt-2">
+          <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl tap cursor-pointer">
+            <input type="checkbox" class="w-4 h-4 accent-brand-900 rounded">
+            <span class="text-sm font-medium text-slate-700">เฉพาะที่มีพ.ร.บ. ใกล้หมด</span>
+          </label>
+          <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl tap cursor-pointer">
+            <input type="checkbox" class="w-4 h-4 accent-brand-900 rounded">
+            <span class="text-sm font-medium text-slate-700">เฉพาะที่มีภาษีใกล้หมด</span>
+          </label>
+          <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl tap cursor-pointer">
+            <input type="checkbox" class="w-4 h-4 accent-brand-900 rounded">
+            <span class="text-sm font-medium text-slate-700">เฉพาะที่มีประกันใกล้หมด</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Sort -->
+      <div>
+        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">เรียงตาม</label>
+        <select class="w-full mt-2 border border-slate-200 rounded-xl px-3 py-3 text-sm bg-white focus:ring-2 focus:ring-brand-900/20 focus:outline-none">
+          <option>ความเร่งด่วน (ด่วน → ปกติ)</option>
+          <option>ทะเบียน (ก-ฮ)</option>
+          <option>ทะเบียน (ฮ-ก)</option>
+          <option>เลขไมล์มาก → น้อย</option>
+          <option>เลขไมล์น้อย → มาก</option>
+          <option>เพิ่มล่าสุด</option>
+        </select>
+      </div>
+
+    </div>
+
+    <!-- Sticky bottom action bar -->
+    <div class="border-t border-slate-100 px-5 py-3 flex items-center gap-3 bg-white safe-bottom">
+      <button onclick="resetFilters()" class="flex-1 py-3 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 tap ripple ripple-dark">
+        ล้างทั้งหมด
+      </button>
+      <button onclick="applyFilters()" class="flex-[2] py-3 bg-brand-900 hover:bg-brand-950 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 tap ripple ios-shadow-2">
+        ใช้ตัวกรอง <span class="bg-white/20 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full font-mono">12 คัน</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Desktop centered dialog -->
+  <div class="modal-content-desktop desktop-only absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl ios-modal-shadow w-[560px] max-h-[85vh] flex flex-col">
+    <!-- Header -->
+    <div class="px-6 py-4 flex items-center justify-between border-b border-slate-100">
+      <div>
+        <h2 class="text-base font-bold text-slate-900">ตัวกรองรถ</h2>
+        <p class="text-xs text-slate-500 mt-0.5">เลือกเงื่อนไขการกรอง</p>
+      </div>
+      <button onclick="closeFilterModal()" class="w-9 h-9 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center justify-center tap">
+        <i class="w-4 h-4 text-slate-700" data-lucide="x"></i>
+      </button>
+    </div>
+
+    <!-- Content -->
+    <div class="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+
+      <div>
+        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">สถานะ</label>
+        <div class="grid grid-cols-4 gap-2 mt-2">
+          <button class="filter-pill px-3 py-2.5 rounded-lg border-2 border-brand-900 bg-brand-50 text-brand-900 text-xs font-bold flex items-center justify-center gap-1.5 tap ripple ripple-dark">
+            <i class="w-3.5 h-3.5" data-lucide="check"></i>ทั้งหมด
+          </button>
+          <button class="filter-pill px-3 py-2.5 rounded-lg border-2 border-slate-200 bg-white text-slate-700 text-xs font-medium flex items-center justify-center gap-1.5 tap ripple ripple-dark">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>ใช้งาน
+          </button>
+          <button class="filter-pill px-3 py-2.5 rounded-lg border-2 border-slate-200 bg-white text-slate-700 text-xs font-medium flex items-center justify-center gap-1.5 tap ripple ripple-dark">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>ซ่อม
+          </button>
+          <button class="filter-pill px-3 py-2.5 rounded-lg border-2 border-slate-200 bg-white text-slate-700 text-xs font-medium flex items-center justify-center gap-1.5 tap ripple ripple-dark">
+            <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>ว่าง
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">ประเภทรถ</label>
+        <div class="flex flex-wrap gap-2 mt-2">
+          <button class="filter-pill px-3 py-1.5 rounded-full border-2 border-brand-900 bg-brand-50 text-brand-900 text-xs font-bold tap ripple ripple-dark">ทั้งหมด</button>
+          <button class="filter-pill px-3 py-1.5 rounded-full border-2 border-slate-200 bg-white text-slate-700 text-xs font-medium tap ripple ripple-dark">รถเก๋ง</button>
+          <button class="filter-pill px-3 py-1.5 rounded-full border-2 border-slate-200 bg-white text-slate-700 text-xs font-medium tap ripple ripple-dark">รถกระบะ</button>
+          <button class="filter-pill px-3 py-1.5 rounded-full border-2 border-slate-200 bg-white text-slate-700 text-xs font-medium tap ripple ripple-dark">SUV</button>
+          <button class="filter-pill px-3 py-1.5 rounded-full border-2 border-slate-200 bg-white text-slate-700 text-xs font-medium tap ripple ripple-dark">รถตู้</button>
+          <button class="filter-pill px-3 py-1.5 rounded-full border-2 border-slate-200 bg-white text-slate-700 text-xs font-medium tap ripple ripple-dark">รถบรรทุก</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">ผู้ใช้</label>
+          <select class="w-full mt-2 border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-brand-900/20 focus:outline-none">
+            <option>ทั้งหมด</option>
+            <option>สมชาย ใจดี</option>
+            <option>วิภา พงษ์</option>
+            <option>ประสิทธิ์ มี</option>
+            <option>นพดล ก.</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">เรียงตาม</label>
+          <select class="w-full mt-2 border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-brand-900/20 focus:outline-none">
+            <option>ความเร่งด่วน</option>
+            <option>ทะเบียน (ก-ฮ)</option>
+            <option>เลขไมล์</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">ปีรถ</label>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+          <select class="border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-brand-900/20 focus:outline-none">
+            <option>ตั้งแต่: 2018</option>
+          </select>
+          <select class="border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-brand-900/20 focus:outline-none">
+            <option>ถึง: 2024</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">เอกสาร</label>
+        <div class="grid grid-cols-1 gap-2 mt-2">
+          <label class="flex items-center gap-3 p-2.5 bg-slate-50 rounded-lg tap cursor-pointer hover:bg-slate-100">
+            <input type="checkbox" class="w-4 h-4 accent-brand-900 rounded">
+            <span class="text-sm font-medium text-slate-700">เฉพาะที่มีพ.ร.บ. ใกล้หมด</span>
+          </label>
+          <label class="flex items-center gap-3 p-2.5 bg-slate-50 rounded-lg tap cursor-pointer hover:bg-slate-100">
+            <input type="checkbox" class="w-4 h-4 accent-brand-900 rounded">
+            <span class="text-sm font-medium text-slate-700">เฉพาะที่มีภาษีใกล้หมด</span>
+          </label>
+          <label class="flex items-center gap-3 p-2.5 bg-slate-50 rounded-lg tap cursor-pointer hover:bg-slate-100">
+            <input type="checkbox" class="w-4 h-4 accent-brand-900 rounded">
+            <span class="text-sm font-medium text-slate-700">เฉพาะที่มีประกันใกล้หมด</span>
+          </label>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Action bar -->
+    <div class="border-t border-slate-100 px-6 py-4 flex items-center justify-between bg-slate-50 rounded-b-2xl">
+      <button onclick="resetFilters()" class="text-sm font-bold text-slate-600 hover:text-slate-900 tap">
+        ล้างทั้งหมด
+      </button>
+      <div class="flex gap-2">
+        <button onclick="closeFilterModal()" class="px-4 py-2 border border-slate-200 bg-white rounded-lg text-sm font-bold text-slate-700 hover:bg-slate-50 tap ripple ripple-dark">
+          ยกเลิก
+        </button>
+        <button onclick="applyFilters()" class="px-4 py-2 bg-brand-900 hover:bg-brand-950 text-white rounded-lg text-sm font-bold flex items-center gap-2 tap ripple ios-shadow-2">
+          ใช้ตัวกรอง <span class="bg-white/20 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full font-mono">12</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SIDE DRAWER (mobile - "เพิ่มเติม" menu)                       -->
+<!-- ============================================================ -->
+<div id="sideDrawer" class="fixed inset-0 z-50 mobile-only">
+  <!-- Backdrop -->
+  <div class="absolute inset-0 bg-black/30 backdrop-blur-sm drawer-backdrop" onclick="closeDrawer()"></div>
+
+  <!-- Drawer panel -->
+  <div class="drawer-panel absolute top-0 left-0 bottom-0 w-[80%] max-w-[300px] bg-white flex flex-col ios-modal-shadow">
+
+    <!-- Brand header -->
+    <div class="px-5 pt-12 pb-5 border-b border-slate-100">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 bg-brand-900 rounded-2xl flex items-center justify-center ios-shadow-2">
+          <i class="w-6 h-6 text-white" data-lucide="truck"></i>
+        </div>
+        <div>
+          <p class="font-bold text-slate-900 text-base leading-tight">Fleet Manager</p>
+          <p class="text-xs text-slate-500 mt-0.5">บริษัท ABC จำกัด</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="flex-1 overflow-y-auto p-3 space-y-0.5">
+      <p class="px-3 pt-2 pb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">หลัก</p>
+
+      <a href="dashboard.html" class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-600 hover:bg-slate-50 text-sm font-medium tap ripple ripple-dark">
+        <i class="w-5 h-5" data-lucide="house"></i>หน้าแรก
+      </a>
+      <a href="vehicles.html" class="flex items-center gap-3 px-3 py-3 rounded-xl bg-brand-900 text-white text-sm font-bold tap ripple">
+        <i class="w-5 h-5" data-lucide="car"></i>รถทั้งหมด
+        <span class="ml-auto bg-white/20 text-white text-[10px] font-bold px-1.5 py-0.5 rounded font-mono">50</span>
+      </a>
+      <a href="expense.html" class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-600 hover:bg-slate-50 text-sm font-medium tap ripple ripple-dark">
+        <i class="w-5 h-5" data-lucide="receipt"></i>ค่าใช้จ่าย
+      </a>
+
+      <p class="px-3 pt-5 pb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">เพิ่มเติม</p>
+
+      <a href="#" class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-600 hover:bg-slate-50 text-sm font-medium tap ripple ripple-dark">
+        <i class="w-5 h-5" data-lucide="file-text"></i>เอกสาร
+        <span class="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">3</span>
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-600 hover:bg-slate-50 text-sm font-medium tap ripple ripple-dark">
+        <i class="w-5 h-5" data-lucide="wrench"></i>ซ่อมบำรุง
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-600 hover:bg-slate-50 text-sm font-medium tap ripple ripple-dark">
+        <i class="w-5 h-5" data-lucide="chart-column"></i>รายงาน
+      </a>
+
+      <p class="px-3 pt-5 pb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">ระบบ</p>
+
+      <a href="#" class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-600 hover:bg-slate-50 text-sm font-medium tap ripple ripple-dark">
+        <i class="w-5 h-5" data-lucide="settings"></i>ตั้งค่า
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-600 hover:bg-slate-50 text-sm font-medium tap ripple ripple-dark">
+        <i class="w-5 h-5" data-lucide="circle-help"></i>ช่วยเหลือ
+      </a>
+    </nav>
+
+    <!-- User footer -->
+    <div class="border-t border-slate-100 p-3 safe-bottom">
+      <div class="flex items-center gap-3 p-2 rounded-xl tap ripple ripple-dark">
+        <div class="w-10 h-10 bg-brand-900 rounded-full flex items-center justify-center text-white font-bold text-sm">
+          AD
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-bold text-slate-900 leading-tight">Admin</p>
+          <p class="text-[11px] text-slate-500 truncate">admin@company.co.th</p>
+        </div>
+        <button class="w-8 h-8 hover:bg-slate-100 rounded-lg flex items-center justify-center">
+          <i class="w-4 h-4 text-slate-400" data-lucide="log-out"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSidebar() {
+  document.body.classList.toggle('sidebar-collapsed');
+  try {
+    localStorage.setItem('fleet_sidebar_collapsed',
+      document.body.classList.contains('sidebar-collapsed') ? '1' : '0');
+  } catch(e) {}
+  setTimeout(() => lucide.createIcons(), 50);
+}
+(function() {
+  try {
+    if (localStorage.getItem('fleet_sidebar_collapsed') === '1') {
+      document.body.classList.add('sidebar-collapsed');
+    }
+  } catch(e) {}
+})();
+
+/* ========== RIPPLE EFFECT ========== */
+document.addEventListener('pointerdown', (e) => {
+  const target = e.target.closest('.ripple');
+  if (!target) return;
+  const rect = target.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  const wave = document.createElement('span');
+  wave.className = 'ripple-wave';
+  wave.style.width = wave.style.height = size + 'px';
+  wave.style.left = (e.clientX - rect.left - size / 2) + 'px';
+  wave.style.top = (e.clientY - rect.top - size / 2) + 'px';
+  target.appendChild(wave);
+  if (navigator.vibrate) try { navigator.vibrate(8); } catch(_) {}
+  setTimeout(() => wave.remove(), 600);
+});
+
+/* ========== SKELETON LOADER ========== */
+function showSkeleton(targetId, durationMs = 900) {
+  const target = document.getElementById(targetId);
+  if (!target) return;
+
+  const realContent = target.innerHTML;
+  const isMobile = targetId === 'mobile-content';
+
+  if (isMobile) {
+    target.innerHTML = `
+      <div class="bg-white px-5 pt-3 pb-3 border-b border-slate-100">
+        <div class="flex items-center justify-between mb-3">
+          <div class="skel h-6 w-40"></div>
+          <div class="skel w-9 h-9 rounded-full"></div>
+        </div>
+        <div class="skel h-10 w-full rounded-xl"></div>
+      </div>
+      <div class="bg-white px-5 pb-3">
+        <div class="flex gap-2">
+          <div class="skel h-7 w-20 rounded-full"></div>
+          <div class="skel h-7 w-24 rounded-full"></div>
+          <div class="skel h-7 w-20 rounded-full"></div>
+          <div class="skel h-7 w-16 rounded-full"></div>
+        </div>
+      </div>
+      <div class="px-5 py-4 space-y-3 pb-24">
+        ${[...Array(5)].map((_, i) => `
+          <div class="bg-white rounded-2xl overflow-hidden border ${i === 0 ? 'border-2 border-red-100' : 'border-slate-100'}">
+            <div class="flex">
+              <div class="skel w-32 h-32 rounded-none flex-shrink-0"></div>
+              <div class="flex-1 p-3.5 space-y-2">
+                <div class="flex justify-between">
+                  <div class="skel h-5 w-24"></div>
+                  <div class="skel h-4 w-16 rounded-full"></div>
+                </div>
+                <div class="skel h-4 w-32"></div>
+                <div class="flex gap-3">
+                  <div class="skel h-3 w-16"></div>
+                  <div class="skel h-3 w-20"></div>
+                </div>
+              </div>
+            </div>
+            ${i === 0 ? '<div class="skel h-8 w-full rounded-none"></div>' : ''}
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } else {
+    target.innerHTML = `
+      <header class="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="skel w-9 h-9 rounded-lg"></div>
+          <div class="space-y-2">
+            <div class="skel h-3 w-32"></div>
+            <div class="skel h-5 w-40"></div>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <div class="skel w-24 h-9 rounded-lg"></div>
+          <div class="skel w-32 h-9 rounded-lg"></div>
+        </div>
+      </header>
+      <div class="p-8 space-y-4">
+        <div class="grid grid-cols-4 gap-4">
+          ${[...Array(4)].map(() => `
+            <div class="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
+              <div class="skel w-10 h-10 rounded-lg"></div>
+              <div class="skel h-8 w-12"></div>
+              <div class="skel h-3 w-24"></div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-4">
+          <div class="flex gap-3"><div class="skel flex-1 h-9 rounded-lg"></div><div class="skel w-32 h-9 rounded-lg"></div><div class="skel w-32 h-9 rounded-lg"></div></div>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div class="bg-slate-50 px-5 py-3 flex items-center gap-4 border-b border-slate-200">
+            <div class="skel h-3 w-4"></div>
+            <div class="skel h-3 w-20"></div>
+            <div class="skel h-3 w-28"></div>
+            <div class="skel h-3 w-12"></div>
+            <div class="skel h-3 w-16"></div>
+            <div class="skel h-3 w-20"></div>
+            <div class="skel h-3 w-16 ml-auto"></div>
+          </div>
+          ${[...Array(6)].map(() => `
+            <div class="px-5 py-3 flex items-center gap-4 border-b border-slate-100">
+              <div class="skel h-4 w-4 rounded"></div>
+              <div class="skel h-4 w-24"></div>
+              <div class="flex items-center gap-2"><div class="skel h-7 w-7 rounded"></div><div class="skel h-4 w-28"></div></div>
+              <div class="skel h-4 w-12"></div>
+              <div class="skel h-5 w-20 rounded-full"></div>
+              <div class="skel h-4 w-24"></div>
+              <div class="skel h-4 w-16 ml-auto"></div>
+              <div class="skel h-5 w-24 rounded-full"></div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  setTimeout(() => {
+    target.innerHTML = realContent;
+    target.classList.add('fade-in');
+    lucide.createIcons();
+    setTimeout(() => target.classList.remove('fade-in'), 500);
+  }, durationMs);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const isMobile = window.innerWidth < 1024;
+  showSkeleton(isMobile ? 'mobile-content' : 'desktop-content', 900);
+});
+
+/* ========== PULL-TO-REFRESH ========== */
+let touchStartY = 0;
+const mobileEl = document.getElementById('mobile-content');
+if (mobileEl) {
+  mobileEl.addEventListener('touchstart', (e) => {
+    if (window.scrollY === 0) touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+  mobileEl.addEventListener('touchmove', (e) => {
+    if (window.scrollY > 0) return;
+    const dy = e.touches[0].clientY - touchStartY;
+    if (dy > 60 && !mobileEl._refreshing) {
+      mobileEl._refreshing = true;
+      if (navigator.vibrate) try { navigator.vibrate(15); } catch(_) {}
+      showSkeleton('mobile-content', 800);
+      setTimeout(() => mobileEl._refreshing = false, 1200);
+    }
+  }, { passive: true });
+}
+
+/* ========== FILTER MODAL ========== */
+function openFilterModal() {
+  const modal = document.getElementById('filterModal');
+  if (!modal) return;
+  modal.classList.add('show');
+  document.body.classList.add('modal-open');
+  if (navigator.vibrate) try { navigator.vibrate(8); } catch(_) {}
+  setTimeout(() => lucide.createIcons(), 50);
+}
+function closeFilterModal() {
+  const modal = document.getElementById('filterModal');
+  if (!modal) return;
+  modal.classList.remove('show');
+  document.body.classList.remove('modal-open');
+  if (navigator.vibrate) try { navigator.vibrate(6); } catch(_) {}
+}
+function applyFilters() {
+  if (navigator.vibrate) try { navigator.vibrate(12); } catch(_) {}
+  closeFilterModal();
+  // Production: collect filter values and refetch list here
+}
+function resetFilters() {
+  if (navigator.vibrate) try { navigator.vibrate(8); } catch(_) {}
+  // Reset all filter pills (deselect)
+  document.querySelectorAll('#filterModal .filter-pill').forEach(b => {
+    b.classList.remove('active');
+  });
+  // Reset checkboxes
+  document.querySelectorAll('#filterModal input[type="checkbox"]').forEach(c => c.checked = false);
+}
+
+// Filter pill toggle (single-select within each group)
+document.addEventListener('click', (e) => {
+  const pill = e.target.closest('#filterModal .filter-pill');
+  if (!pill) return;
+  // Find sibling pills in the same group (same parent div)
+  const siblings = pill.parentElement.querySelectorAll('.filter-pill');
+  siblings.forEach(s => {
+    s.classList.remove('border-brand-900', 'bg-brand-50', 'text-brand-900');
+    s.classList.add('border-slate-200', 'bg-white', 'text-slate-700');
+  });
+  pill.classList.remove('border-slate-200', 'bg-white', 'text-slate-700');
+  pill.classList.add('border-brand-900', 'bg-brand-50', 'text-brand-900');
+});
+
+// Close modal on Esc key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeFilterModal();
+    closeDrawer();
+  }
+});
+
+/* ========== SIDE DRAWER (mobile "เพิ่มเติม") ========== */
+function openDrawer() {
+  const drawer = document.getElementById('sideDrawer');
+  if (!drawer) return;
+  drawer.classList.add('show');
+  document.body.classList.add('modal-open');
+  if (navigator.vibrate) try { navigator.vibrate(8); } catch(_) {}
+  setTimeout(() => lucide.createIcons(), 50);
+}
+function closeDrawer() {
+  const drawer = document.getElementById('sideDrawer');
+  if (!drawer) return;
+  drawer.classList.remove('show');
+  document.body.classList.remove('modal-open');
+  if (navigator.vibrate) try { navigator.vibrate(6); } catch(_) {}
+}
+
+// Swipe-to-close gesture (drag drawer left to close - iOS pattern)
+(function() {
+  const drawer = document.getElementById('sideDrawer');
+  if (!drawer) return;
+  const panel = drawer.querySelector('.drawer-panel');
+  let startX = 0, currentX = 0, dragging = false;
+
+  panel.addEventListener('touchstart', (e) => {
+    if (!drawer.classList.contains('show')) return;
+    startX = e.touches[0].clientX;
+    dragging = true;
+    panel.style.transition = 'none';
+  }, { passive: true });
+
+  panel.addEventListener('touchmove', (e) => {
+    if (!dragging) return;
+    currentX = e.touches[0].clientX;
+    const dx = currentX - startX;
+    if (dx < 0) {
+      panel.style.transform = `translateX(${dx}px)`;
+    }
+  }, { passive: true });
+
+  panel.addEventListener('touchend', () => {
+    if (!dragging) return;
+    dragging = false;
+    panel.style.transition = '';
+    const dx = currentX - startX;
+    if (dx < -80) {
+      closeDrawer();
+    } else {
+      panel.style.transform = '';
+    }
+  });
+})();
+
+lucide.createIcons();
+</script>
+</body>
+</html>

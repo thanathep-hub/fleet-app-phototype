@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+
+<html lang="th">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
+<meta content="#211e53" name="theme-color"/>
+<title>Fleet Manager — สิทธิ์การเข้าถึง</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@500;700&amp;family=Noto+Sans+Thai:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        brand: {
+          50: '#f4f3f9', 100: '#ebeaf3', 200: '#d2cfe5', 300: '#aaa4cd',
+          400: '#7d75b0', 500: '#5d5494', 600: '#48417a', 700: '#3b3563',
+          800: '#332e54', 900: '#211e53', 950: '#15123a',
+        }
+      },
+      fontFamily: {
+        sans: ['Inter', 'Noto Sans Thai', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
+      }
+    }
+  }
+}
+</script>
+<style>
+body { font-family: 'Inter', 'Noto Sans Thai', sans-serif; }
+.font-mono { font-family: 'JetBrains Mono', monospace; }
+.chip-row::-webkit-scrollbar { display: none; }
+.chip-row { -ms-overflow-style: none; scrollbar-width: none; }
+.safe-bottom { padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); }
+@media (min-width: 1024px) {
+  .mobile-only { display: none !important; }
+}
+@media (max-width: 1023px) {
+  .desktop-only { display: none !important; }
+}
+
+/* === Sidebar layout === */
+.sidebar {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: 240px;
+  z-index: 40;
+  transition: transform 0.25s ease;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.main-area {
+  margin-left: 240px;
+  transition: margin-left 0.25s ease;
+  min-height: 100vh;
+}
+/* When hidden: sidebar slides off-screen, content takes full width */
+body.sidebar-collapsed .sidebar {
+  transform: translateX(-100%);
+}
+body.sidebar-collapsed .main-area {
+  margin-left: 0;
+}
+/* Toggle button morphs: 'panel-left' icon stays the same; we just rotate it visually */
+body.sidebar-collapsed .toggle-icon {
+  transform: rotate(180deg);
+}
+.toggle-icon {
+  transition: transform 0.25s ease;
+  display: inline-block;
+}
+
+
+/* === SIDE DRAWER (mobile) === */
+#sideDrawer { visibility: hidden; pointer-events: none; }
+#sideDrawer.show { visibility: visible; pointer-events: auto; }
+#sideDrawer .drawer-backdrop { opacity: 0; transition: opacity 0.3s ease; }
+#sideDrawer.show .drawer-backdrop { opacity: 1; }
+#sideDrawer .drawer-panel {
+  transform: translateX(-100%);
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+#sideDrawer.show .drawer-panel { transform: translateX(0); }
+body.modal-open { overflow: hidden; }
+.ios-modal-shadow {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08), 0 24px 64px -16px rgba(0,0,0,0.20);
+}
+.ios-shadow-2 {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 4px 12px -2px rgba(0,0,0,0.08);
+}
+
+
+/* Bottom nav active dot indicator */
+.nav-item-active { position: relative; }
+.nav-item-active::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #211e53;
+}
+
+/* iOS blur for bottom nav */
+.ios-blur {
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  background-color: rgba(255, 255, 255, 0.85);
+}
+
+/* Tap feedback */
+.tap {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  cursor: pointer;
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.tap:active { transform: scale(0.97); }
+
+/* Ripple effect */
+.ripple { position: relative; overflow: hidden; }
+.ripple-wave {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.4);
+  transform: scale(0);
+  animation: ripple-anim 0.6s ease-out;
+}
+.ripple-dark .ripple-wave { background: rgba(33, 30, 83, 0.15); }
+@keyframes ripple-anim { to { transform: scale(4); opacity: 0; } }
+
+</style>
+</head>
+<body class="bg-slate-50 lg:bg-slate-50">
+<!-- MOBILE VIEW (< 1024px) -->
+<div class="mobile-only min-h-screen relative bg-slate-50">
+<div class="bg-white px-5 pt-3 pb-4 border-b border-slate-100">
+<div class="flex items-center justify-between mb-3">
+<div>
+<button class="text-xs text-slate-500 flex items-center gap-1 mb-1"><i class="w-3 h-3" data-lucide="chevron-left"></i>กลับ</button>
+<h1 class="text-lg font-bold text-slate-900">สิทธิ์การเข้าถึง</h1>
+</div>
+<span class="text-[10px] font-bold bg-brand-900 text-white px-2.5 py-1 rounded-full">ADMIN</span>
+</div>
+<div class="relative">
+<i class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" data-lucide="search"></i>
+<input class="w-full bg-slate-100 border-0 rounded-xl pl-10 pr-4 py-2.5 text-sm" placeholder="ค้นหาพนักงาน..."/>
+</div>
+</div>
+<div class="bg-brand-900 text-white px-5 py-4">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 bg-white/10 backdrop-blur rounded-full flex items-center justify-center font-bold">วภ</div>
+<div class="flex-1">
+<div class="font-bold">วิภา พงษ์</div>
+<div class="text-xs text-white/60">ฝ่ายขนส่ง · ID 1056</div>
+</div>
+<button class="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center"><i class="w-4 h-4" data-lucide="more-horizontal"></i></button>
+</div>
+<div class="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-white/20 text-center">
+<div><p class="text-lg font-extrabold font-mono">12</p><p class="text-[10px] text-white/60 uppercase">เข้าถึงได้</p></div>
+<div><p class="text-lg font-extrabold font-mono">3</p><p class="text-[10px] text-white/60 uppercase">รถส่วนตัว</p></div>
+<div><p class="text-lg font-extrabold font-mono">Edit</p><p class="text-[10px] text-white/60 uppercase">สิทธิ์</p></div>
+</div>
+</div>
+<div class="bg-white px-5 py-4 border-b border-slate-100">
+<p class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">ระดับสิทธิ์</p>
+<div class="grid grid-cols-3 gap-2">
+<button class="border-2 border-slate-200 rounded-xl p-2.5 text-center"><div class="text-xs font-bold text-slate-500">View</div><div class="text-[10px] text-slate-400 mt-0.5">ดูเท่านั้น</div></button>
+<button class="border-2 border-brand-900 bg-brand-50 rounded-xl p-2.5 text-center relative"><div class="absolute top-1 right-1"><i class="w-3 h-3 text-brand-900" data-lucide="check"></i></div><div class="text-xs font-bold text-brand-900">Edit</div><div class="text-[10px] text-brand-700 mt-0.5">แก้ไขได้</div></button>
+<button class="border-2 border-slate-200 rounded-xl p-2.5 text-center"><div class="text-xs font-bold text-slate-500">Admin</div><div class="text-[10px] text-slate-400 mt-0.5">เต็มสิทธิ์</div></button>
+</div>
+</div>
+<div class="px-5 py-4 pb-24">
+<div class="flex items-center justify-between mb-3">
+<h3 class="text-sm font-bold text-slate-900">รถที่เข้าถึงได้</h3>
+<button class="text-xs font-bold text-brand-900">เลือกทั้งหมด</button>
+</div>
+<div class="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-100">
+<label class="p-3 flex items-center gap-3">
+<input checked="" class="w-5 h-5 accent-brand-900 rounded" type="checkbox"/>
+<div class="w-9 h-9 bg-brand-100 rounded-lg flex items-center justify-center"><i class="w-4 h-4 text-brand-900" data-lucide="car"></i></div>
+<div class="flex-1 min-w-0">
+<div class="font-mono text-sm font-bold text-slate-900">1กข-1234</div>
+<div class="text-[11px] text-slate-500">Toyota Vios · ฝ่ายขาย</div>
+</div>
+<span class="text-[10px] font-bold bg-brand-900 text-white px-2 py-0.5 rounded-full">ส่วนตัว</span>
+</label>
+<label class="p-3 flex items-center gap-3">
+<input checked="" class="w-5 h-5 accent-brand-900 rounded" type="checkbox"/>
+<div class="w-9 h-9 bg-amber-100 rounded-lg flex items-center justify-center"><i class="w-4 h-4 text-amber-700" data-lucide="truck"></i></div>
+<div class="flex-1 min-w-0">
+<div class="font-mono text-sm font-bold text-slate-900">2ขค-5678</div>
+<div class="text-[11px] text-slate-500">Isuzu D-Max · ขนส่ง</div>
+</div>
+<span class="text-[10px] font-bold bg-brand-900 text-white px-2 py-0.5 rounded-full">ส่วนตัว</span>
+</label>
+<label class="p-3 flex items-center gap-3">
+<input checked="" class="w-5 h-5 accent-brand-900 rounded" type="checkbox"/>
+<div class="w-9 h-9 bg-brand-100 rounded-lg flex items-center justify-center"><i class="w-4 h-4 text-brand-900" data-lucide="car"></i></div>
+<div class="flex-1 min-w-0">
+<div class="font-mono text-sm font-bold text-slate-900">3คง-9012</div>
+<div class="text-[11px] text-slate-500">Honda City · ส่วนกลาง</div>
+</div>
+</label>
+<label class="p-3 flex items-center gap-3 opacity-60">
+<input class="w-5 h-5 accent-brand-900 rounded" type="checkbox"/>
+<div class="w-9 h-9 bg-slate-100 rounded-lg flex items-center justify-center"><i class="w-4 h-4 text-slate-600" data-lucide="truck"></i></div>
+<div class="flex-1 min-w-0">
+<div class="font-mono text-sm font-bold text-slate-900">4งจ-3456</div>
+<div class="text-[11px] text-slate-500">Toyota Hilux · ส่วนกลาง</div>
+</div>
+</label>
+<label class="p-3 flex items-center gap-3 opacity-60">
+<input class="w-5 h-5 accent-brand-900 rounded" type="checkbox"/>
+<div class="w-9 h-9 bg-brand-100 rounded-lg flex items-center justify-center"><i class="w-4 h-4 text-brand-900" data-lucide="car"></i></div>
+<div class="flex-1 min-w-0">
+<div class="font-mono text-sm font-bold text-slate-900">5จฉ-7890</div>
+<div class="text-[11px] text-slate-500">Mazda 2 · ส่วนกลาง</div>
+</div>
+</label>
+</div>
+<button class="w-full mt-4 bg-brand-900 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2"><i class="w-4 h-4" data-lucide="save"></i>บันทึกการเปลี่ยนแปลง</button>
+</div>
+</div>
+<!-- DESKTOP VIEW (>= 1024px) -->
+<div class="desktop-only min-h-screen bg-slate-50">
+<aside class="bg-white border-r border-slate-200 flex flex-col sidebar">
+<div class="p-5 border-b border-slate-100 flex items-center gap-2.5 cursor-pointer" onclick="location.href='dashboard.html'">
+<div class="w-9 h-9 bg-brand-900 rounded-lg flex items-center justify-center sidebar-brand-row"><i class="w-5 h-5 text-white" data-lucide="truck"></i></div>
+<div><div class="font-bold text-slate-900 text-sm">Fleet Manager</div><div class="text-[10px] text-slate-500">บริษัท ABC</div></div>
+</div>
+<nav class="flex-1 p-3 space-y-0.5">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 text-sm font-medium" href="dashboard.html"><i class="w-4 h-4" data-lucide="layout-dashboard"></i>Dashboard</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 text-sm font-medium" href="vehicles.html"><i class="w-4 h-4" data-lucide="truck"></i>รถทั้งหมด</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 text-sm font-medium" href="expense.html"><i class="w-4 h-4" data-lucide="receipt"></i>ค่าใช้จ่าย</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 text-sm font-medium"><i class="w-4 h-4" data-lucide="file-text"></i>เอกสาร</a>
+<div class="pt-4 mt-4 border-t border-slate-100">
+<div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-1 sidebar-section-title">ผู้ดูแล</div>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 text-sm font-medium"><i class="w-4 h-4" data-lucide="users"></i>พนักงาน</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-brand-900 text-white text-sm font-semibold" href="permission.html"><i class="w-4 h-4" data-lucide="shield"></i>สิทธิ์การเข้าถึง</a>
+</div>
+</nav>
+</aside>
+<div class="main-area">
+<header class="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between">
+<div class="flex items-center gap-3"><button class="w-9 h-9 hover:bg-slate-100 rounded-lg flex items-center justify-center text-slate-600" onclick="toggleSidebar()" title="ซ่อน/แสดงเมนู"><span class="toggle-icon"><i class="w-4 h-4" data-lucide="panel-left"></i></span></button><div>
+<div class="flex items-center gap-2 text-xs text-slate-500 mb-1"><span>ผู้ดูแล</span><i class="w-3 h-3" data-lucide="chevron-right"></i><span class="text-slate-900 font-medium">สิทธิ์การเข้าถึง</span></div>
+<h1 class="text-xl font-bold text-slate-900">สิทธิ์การเข้าถึงรถ</h1>
+</div></div>
+<button class="px-4 py-2 bg-brand-900 hover:bg-brand-950 rounded-lg text-sm font-bold text-white flex items-center gap-2"><i class="w-4 h-4" data-lucide="user-plus"></i>เพิ่มพนักงาน</button>
+</header>
+<div class="p-8 grid grid-cols-12 gap-5">
+<!-- User list -->
+<div class="col-span-4 bg-white rounded-xl border border-slate-200 overflow-hidden">
+<div class="p-3 border-b border-slate-100">
+<div class="relative">
+<i class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" data-lucide="search"></i>
+<input class="w-full bg-slate-50 border border-slate-200 rounded-md pl-9 pr-3 py-2 text-sm" placeholder="ค้นหาพนักงาน..."/>
+</div>
+</div>
+<div class="max-h-[600px] overflow-y-auto divide-y divide-slate-100">
+<button class="w-full p-3 flex items-center gap-3 bg-brand-50 border-l-4 border-brand-900 text-left">
+<div class="w-10 h-10 bg-brand-900 rounded-full flex items-center justify-center text-white font-bold text-xs">วภ</div>
+<div class="flex-1 min-w-0">
+<div class="text-sm font-bold text-slate-900">วิภา พงษ์</div>
+<div class="text-[11px] text-slate-500">ขนส่ง · 12 รถ</div>
+</div>
+<span class="text-[10px] font-bold bg-brand-900 text-white px-2 py-0.5 rounded">Edit</span>
+</button>
+<button class="w-full p-3 flex items-center gap-3 hover:bg-slate-50 text-left">
+<div class="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-xs">สช</div>
+<div class="flex-1 min-w-0">
+<div class="text-sm font-bold text-slate-900">สมชาย ใจดี</div>
+<div class="text-[11px] text-slate-500">ขาย · 5 รถ</div>
+</div>
+<span class="text-[10px] font-bold bg-emerald-600 text-white px-2 py-0.5 rounded">Admin</span>
+</button>
+<button class="w-full p-3 flex items-center gap-3 hover:bg-slate-50 text-left">
+<div class="w-10 h-10 bg-amber-600 rounded-full flex items-center justify-center text-white font-bold text-xs">ปส</div>
+<div class="flex-1 min-w-0">
+<div class="text-sm font-bold text-slate-900">ประสิทธิ์ มี</div>
+<div class="text-[11px] text-slate-500">ช่าง · 8 รถ</div>
+</div>
+<span class="text-[10px] font-bold bg-slate-600 text-white px-2 py-0.5 rounded">View</span>
+</button>
+<button class="w-full p-3 flex items-center gap-3 hover:bg-slate-50 text-left">
+<div class="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xs">นพ</div>
+<div class="flex-1 min-w-0">
+<div class="text-sm font-bold text-slate-900">นพดล ก.</div>
+<div class="text-[11px] text-slate-500">บัญชี · 50 รถ</div>
+</div>
+<span class="text-[10px] font-bold bg-slate-600 text-white px-2 py-0.5 rounded">View</span>
+</button>
+<button class="w-full p-3 flex items-center gap-3 hover:bg-slate-50 text-left">
+<div class="w-10 h-10 bg-rose-600 rounded-full flex items-center justify-center text-white font-bold text-xs">ศร</div>
+<div class="flex-1 min-w-0">
+<div class="text-sm font-bold text-slate-900">ศรีนวล จ.</div>
+<div class="text-[11px] text-slate-500">HR · 0 รถ</div>
+</div>
+<span class="text-[10px] font-bold bg-slate-300 text-slate-700 px-2 py-0.5 rounded">None</span>
+</button>
+</div>
+</div>
+<!-- Detail panel -->
+<div class="col-span-8 space-y-5">
+<!-- User header -->
+<div class="bg-white rounded-xl border border-slate-200 p-5">
+<div class="flex items-center gap-4">
+<div class="w-16 h-16 bg-brand-900 rounded-full flex items-center justify-center text-white font-bold text-lg">วภ</div>
+<div class="flex-1">
+<div class="flex items-center gap-2">
+<h2 class="text-lg font-bold text-slate-900">วิภา พงษ์</h2>
+<span class="text-[10px] font-bold bg-brand-900 text-white px-2 py-0.5 rounded">Edit</span>
+</div>
+<p class="text-xs text-slate-500 mt-0.5">vipa@company.co.th · ฝ่ายขนส่ง · ID 1056</p>
+</div>
+<button class="px-3 py-2 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700">ดูประวัติ</button>
+</div>
+<div class="grid grid-cols-4 gap-3 mt-5">
+<div class="bg-slate-50 rounded-lg p-3"><p class="text-[10px] text-slate-500 uppercase font-bold">เข้าถึงได้</p><p class="text-xl font-extrabold text-slate-900 font-mono mt-1">12 / 50</p></div>
+<div class="bg-slate-50 rounded-lg p-3"><p class="text-[10px] text-slate-500 uppercase font-bold">รถส่วนตัว</p><p class="text-xl font-extrabold text-slate-900 font-mono mt-1">3</p></div>
+<div class="bg-slate-50 rounded-lg p-3"><p class="text-[10px] text-slate-500 uppercase font-bold">เข้าใช้ล่าสุด</p><p class="text-sm font-extrabold text-slate-900 mt-1.5">2 ชม.ก่อน</p></div>
+<div class="bg-slate-50 rounded-lg p-3"><p class="text-[10px] text-slate-500 uppercase font-bold">สถานะ</p><p class="text-sm font-extrabold text-emerald-600 mt-1.5 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>ออนไลน์</p></div>
+</div>
+</div>
+<!-- Role -->
+<div class="bg-white rounded-xl border border-slate-200 p-5">
+<h3 class="text-sm font-bold text-slate-900 mb-3">ระดับสิทธิ์</h3>
+<div class="grid grid-cols-3 gap-3">
+<button class="border-2 border-slate-200 rounded-xl p-4 text-left hover:border-slate-300">
+<div class="flex items-center gap-2 mb-1"><i class="w-4 h-4 text-slate-500" data-lucide="eye"></i><span class="font-bold text-sm text-slate-900">View</span></div>
+<p class="text-[11px] text-slate-500">ดูข้อมูลและค่าใช้จ่ายเท่านั้น</p>
+</button>
+<button class="border-2 border-brand-900 bg-brand-50 rounded-xl p-4 text-left relative">
+<div class="absolute top-2 right-2 w-5 h-5 bg-brand-900 rounded-full flex items-center justify-center"><i class="w-3 h-3 text-white" data-lucide="check"></i></div>
+<div class="flex items-center gap-2 mb-1"><i class="w-4 h-4 text-brand-900" data-lucide="edit-2"></i><span class="font-bold text-sm text-brand-900">Edit</span></div>
+<p class="text-[11px] text-brand-700">บันทึกค่าใช้จ่าย, แก้ไขข้อมูล</p>
+</button>
+<button class="border-2 border-slate-200 rounded-xl p-4 text-left hover:border-slate-300">
+<div class="flex items-center gap-2 mb-1"><i class="w-4 h-4 text-slate-500" data-lucide="shield"></i><span class="font-bold text-sm text-slate-900">Admin</span></div>
+<p class="text-[11px] text-slate-500">เต็มสิทธิ์ + จัดการ user</p>
+</button>
+</div>
+</div>
+<!-- Vehicle access matrix -->
+<div class="bg-white rounded-xl border border-slate-200">
+<div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+<div>
+<h3 class="text-sm font-bold text-slate-900">รถที่เข้าถึงได้</h3>
+<p class="text-[11px] text-slate-500 mt-0.5">เลือกรถที่ผู้ใช้คนนี้สามารถดูข้อมูลและแก้ไขได้</p>
+</div>
+<div class="flex items-center gap-2 text-xs">
+<button class="font-semibold text-brand-900">เลือกทั้งหมด</button>
+<span class="text-slate-300">·</span>
+<button class="font-semibold text-slate-500">ล้างทั้งหมด</button>
+</div>
+</div>
+<table class="w-full text-sm">
+<thead class="bg-slate-50 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+<tr><th class="px-5 py-2.5 w-10"><input class="accent-brand-900 rounded" type="checkbox"/></th><th class="px-5 py-2.5">ทะเบียน</th><th class="px-5 py-2.5">ยี่ห้อ</th><th class="px-5 py-2.5">แผนก</th><th class="px-5 py-2.5">สิทธิ์</th><th class="px-5 py-2.5 text-right">ตั้งแต่</th></tr>
+</thead>
+<tbody class="divide-y divide-slate-100">
+<tr class="hover:bg-slate-50"><td class="px-5 py-2.5"><input checked="" class="accent-brand-900 rounded" type="checkbox"/></td><td class="px-5 py-2.5 font-mono font-bold">1กข-1234</td><td class="px-5 py-2.5 text-slate-700">Toyota Vios</td><td class="px-5 py-2.5 text-slate-600 text-xs">ฝ่ายขาย</td><td class="px-5 py-2.5"><span class="inline-flex items-center gap-1 text-[11px] font-bold bg-brand-100 text-brand-900 px-2 py-0.5 rounded-full"><i class="w-3 h-3" data-lucide="star"></i>ส่วนตัว</span></td><td class="px-5 py-2.5 text-right text-xs text-slate-500 font-mono">1 ม.ค. 69</td></tr>
+<tr class="hover:bg-slate-50"><td class="px-5 py-2.5"><input checked="" class="accent-brand-900 rounded" type="checkbox"/></td><td class="px-5 py-2.5 font-mono font-bold">2ขค-5678</td><td class="px-5 py-2.5 text-slate-700">Isuzu D-Max</td><td class="px-5 py-2.5 text-slate-600 text-xs">ขนส่ง</td><td class="px-5 py-2.5"><span class="inline-flex items-center gap-1 text-[11px] font-bold bg-brand-100 text-brand-900 px-2 py-0.5 rounded-full"><i class="w-3 h-3" data-lucide="star"></i>ส่วนตัว</span></td><td class="px-5 py-2.5 text-right text-xs text-slate-500 font-mono">15 ก.พ. 69</td></tr>
+<tr class="hover:bg-slate-50"><td class="px-5 py-2.5"><input checked="" class="accent-brand-900 rounded" type="checkbox"/></td><td class="px-5 py-2.5 font-mono font-bold">3คง-9012</td><td class="px-5 py-2.5 text-slate-700">Honda City</td><td class="px-5 py-2.5 text-slate-600 text-xs">ส่วนกลาง</td><td class="px-5 py-2.5 text-slate-500 text-xs italic">ใช้งานทั่วไป</td><td class="px-5 py-2.5 text-right text-xs text-slate-500 font-mono">1 ม.ค. 69</td></tr>
+<tr class="hover:bg-slate-50"><td class="px-5 py-2.5"><input class="accent-brand-900 rounded" type="checkbox"/></td><td class="px-5 py-2.5 font-mono font-bold">4งจ-3456</td><td class="px-5 py-2.5 text-slate-700">Toyota Hilux</td><td class="px-5 py-2.5 text-slate-600 text-xs">ส่วนกลาง</td><td class="px-5 py-2.5 text-slate-400 text-xs italic">ไม่มีสิทธิ์</td><td class="px-5 py-2.5 text-right text-xs text-slate-300 font-mono">—</td></tr>
+<tr class="hover:bg-slate-50"><td class="px-5 py-2.5"><input class="accent-brand-900 rounded" type="checkbox"/></td><td class="px-5 py-2.5 font-mono font-bold">5จฉ-7890</td><td class="px-5 py-2.5 text-slate-700">Mazda 2</td><td class="px-5 py-2.5 text-slate-600 text-xs">ส่วนกลาง</td><td class="px-5 py-2.5 text-slate-400 text-xs italic">ไม่มีสิทธิ์</td><td class="px-5 py-2.5 text-right text-xs text-slate-300 font-mono">—</td></tr>
+</tbody>
+</table>
+<div class="px-5 py-3 border-t border-slate-100 flex items-center justify-between bg-slate-50">
+<div class="text-xs text-slate-500"><span class="font-bold text-slate-900">3</span> จาก 50 รถ ถูกเลือก</div>
+<div class="flex gap-2">
+<button class="px-4 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 bg-white">ยกเลิก</button>
+<button class="px-4 py-1.5 bg-brand-900 hover:bg-brand-950 rounded-lg text-xs font-bold text-white flex items-center gap-1.5"><i class="w-3 h-3" data-lucide="save"></i>บันทึก</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div></div>
+
+<!-- ===== BOTTOM NAV ===== -->
+<div class="fixed bottom-0 left-0 right-0 ios-blur border-t border-slate-200 px-2 pt-2 pb-2 safe-bottom z-30 mobile-only">
+  <div class="grid grid-cols-4">
+    <button class="flex flex-col items-center gap-0.5 py-1.5 text-slate-400 tap ripple ripple-dark" onclick="location.href='dashboard.html'">
+      <i class="w-5 h-5" data-lucide="house"></i>
+      <span class="text-[10px] font-medium">หน้าแรก</span>
+    </button>
+    <button class="flex flex-col items-center gap-0.5 py-1.5 text-slate-400 tap ripple ripple-dark" onclick="location.href='vehicles.html'">
+      <i class="w-5 h-5" data-lucide="car"></i>
+      <span class="text-[10px] font-medium">รถ</span>
+    </button>
+    <button class="flex flex-col items-center gap-0.5 py-1.5 text-slate-400 tap ripple ripple-dark" onclick="location.href='expense.html'">
+      <i class="w-5 h-5" data-lucide="receipt"></i>
+      <span class="text-[10px] font-medium">ค่าใช้จ่าย</span>
+    </button>
+    <button class="flex flex-col items-center gap-0.5 py-1.5 text-slate-400 tap ripple ripple-dark" onclick="openDrawer()">
+      <i class="w-5 h-5" data-lucide="more-horizontal"></i>
+      <span class="text-[10px] font-medium">เพิ่มเติม</span>
+    </button>
+  </div>
+</div>
+
+<!-- ===== SIDE DRAWER ===== -->
+<div id="sideDrawer" class="fixed inset-0 z-50 mobile-only">
+  <div class="absolute inset-0 bg-black/30 backdrop-blur-sm drawer-backdrop" onclick="closeDrawer()"></div>
+  <div class="drawer-panel absolute top-0 left-0 bottom-0 w-[80%] max-w-[300px] bg-white flex flex-col ios-modal-shadow">
+    <div class="px-5 pt-12 pb-5 border-b border-slate-100">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 bg-brand-900 rounded-2xl flex items-center justify-center ios-shadow-2">
+          <i class="w-6 h-6 text-white" data-lucide="truck"></i>
+        </div>
+        <div>
+          <p class="font-bold text-slate-900 text-base leading-tight">Fleet Manager</p>
+          <p class="text-xs text-slate-500 mt-0.5">บริษัท ABC จำกัด</p>
+        </div>
+      </div>
+    </div>
+    <nav class="flex-1 overflow-y-auto p-3 space-y-0.5">
+      <p class="px-3 pt-2 pb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">หลัก</p>
+      <a href="dashboard.html" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm tap ripple text-slate-600 hover:bg-slate-50 font-medium ripple-dark">
+        <i class="w-5 h-5" data-lucide="house"></i>หน้าแรก
+      </a>
+      <a href="vehicles.html" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm tap ripple text-slate-600 hover:bg-slate-50 font-medium ripple-dark">
+        <i class="w-5 h-5" data-lucide="car"></i>รถทั้งหมด
+        <span class="ml-auto bg-slate-100 text-slate-500 text-[10px] font-bold px-1.5 py-0.5 rounded font-mono">50</span>
+      </a>
+      <a href="expense.html" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm tap ripple text-slate-600 hover:bg-slate-50 font-medium ripple-dark">
+        <i class="w-5 h-5" data-lucide="receipt"></i>ค่าใช้จ่าย
+      </a>
+      <p class="px-3 pt-5 pb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">เพิ่มเติม</p>
+      <a href="#" class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-600 hover:bg-slate-50 text-sm font-medium tap ripple ripple-dark">
+        <i class="w-5 h-5" data-lucide="file-text"></i>เอกสาร
+        <span class="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">3</span>
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-600 hover:bg-slate-50 text-sm font-medium tap ripple ripple-dark">
+        <i class="w-5 h-5" data-lucide="wrench"></i>ซ่อมบำรุง
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-600 hover:bg-slate-50 text-sm font-medium tap ripple ripple-dark">
+        <i class="w-5 h-5" data-lucide="chart-column"></i>รายงาน
+      </a>
+      <p class="px-3 pt-5 pb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">ระบบ</p>
+      <a href="permission.html" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm tap ripple bg-brand-900 text-white font-bold ripple">
+        <i class="w-5 h-5" data-lucide="shield"></i>สิทธิ์การเข้าถึง
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-600 hover:bg-slate-50 text-sm font-medium tap ripple ripple-dark">
+        <i class="w-5 h-5" data-lucide="settings"></i>ตั้งค่า
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-600 hover:bg-slate-50 text-sm font-medium tap ripple ripple-dark">
+        <i class="w-5 h-5" data-lucide="circle-help"></i>ช่วยเหลือ
+      </a>
+    </nav>
+    <div class="border-t border-slate-100 p-3 safe-bottom">
+      <div class="flex items-center gap-3 p-2 rounded-xl tap ripple ripple-dark">
+        <div class="w-10 h-10 bg-brand-900 rounded-full flex items-center justify-center text-white font-bold text-sm">AD</div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-bold text-slate-900 leading-tight">Admin</p>
+          <p class="text-[11px] text-slate-500 truncate">admin@company.co.th</p>
+        </div>
+        <button class="w-8 h-8 hover:bg-slate-100 rounded-lg flex items-center justify-center">
+          <i class="w-4 h-4 text-slate-400" data-lucide="log-out"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Sidebar toggle (desktop only)
+function toggleSidebar() {
+  document.body.classList.toggle('sidebar-collapsed');
+  try {
+    localStorage.setItem('fleet_sidebar_collapsed',
+      document.body.classList.contains('sidebar-collapsed') ? '1' : '0');
+  } catch(e) {}
+  setTimeout(() => lucide.createIcons(), 50);
+}
+// Restore state on load
+(function() {
+  try {
+    if (localStorage.getItem('fleet_sidebar_collapsed') === '1') {
+      document.body.classList.add('sidebar-collapsed');
+    }
+  } catch(e) {}
+})();
+
+
+
+/* ========== SIDE DRAWER ========== */
+function openDrawer() {
+  const drawer = document.getElementById('sideDrawer');
+  if (!drawer) return;
+  drawer.classList.add('show');
+  document.body.classList.add('modal-open');
+  if (navigator.vibrate) try { navigator.vibrate(8); } catch(_) {}
+  setTimeout(() => lucide.createIcons(), 50);
+}
+function closeDrawer() {
+  const drawer = document.getElementById('sideDrawer');
+  if (!drawer) return;
+  drawer.classList.remove('show');
+  document.body.classList.remove('modal-open');
+  if (navigator.vibrate) try { navigator.vibrate(6); } catch(_) {}
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeDrawer();
+});
+(function() {
+  const drawer = document.getElementById('sideDrawer');
+  if (!drawer) return;
+  const panel = drawer.querySelector('.drawer-panel');
+  let startX = 0, currentX = 0, dragging = false;
+  panel.addEventListener('touchstart', (e) => {
+    if (!drawer.classList.contains('show')) return;
+    startX = e.touches[0].clientX; dragging = true;
+    panel.style.transition = 'none';
+  }, { passive: true });
+  panel.addEventListener('touchmove', (e) => {
+    if (!dragging) return;
+    currentX = e.touches[0].clientX;
+    const dx = currentX - startX;
+    if (dx < 0) panel.style.transform = `translateX(${dx}px)`;
+  }, { passive: true });
+  panel.addEventListener('touchend', () => {
+    if (!dragging) return;
+    dragging = false;
+    panel.style.transition = '';
+    const dx = currentX - startX;
+    if (dx < -80) closeDrawer();
+    else panel.style.transform = '';
+  });
+})();
+
+
+/* Ripple effect */
+document.addEventListener('pointerdown', (e) => {
+  const target = e.target.closest('.ripple');
+  if (!target) return;
+  const rect = target.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  const wave = document.createElement('span');
+  wave.className = 'ripple-wave';
+  wave.style.width = wave.style.height = size + 'px';
+  wave.style.left = (e.clientX - rect.left - size / 2) + 'px';
+  wave.style.top = (e.clientY - rect.top - size / 2) + 'px';
+  target.appendChild(wave);
+  if (navigator.vibrate) try { navigator.vibrate(8); } catch(_) {}
+  setTimeout(() => wave.remove(), 600);
+});
+
+lucide.createIcons();
+</script>
+</body>
+</html>
